@@ -7,9 +7,7 @@ use warp::Filter;
 pub fn index(
     db: crate::Db,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-    list(db.clone())
-        .or(create(db.clone()))
-        .or(fetch(db))
+    list(db.clone()).or(create(db.clone())).or(fetch(db))
 }
 
 fn list(db: crate::Db) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {

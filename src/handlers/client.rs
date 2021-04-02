@@ -1,9 +1,9 @@
-use crate::types::*;
+use crate::models::client::ClientId;
 use futures::{SinkExt, StreamExt};
 use std::convert::Infallible;
 use tracing::*;
 
-pub async fn ws(id: RoomId, socket: warp::ws::WebSocket) {
+pub async fn ws(db: crate::Db, id: ClientId, socket: warp::ws::WebSocket) {
     let (mut tx, mut rx) = socket.split();
 
     // TODO(will): insert client connection into hashmap
@@ -34,18 +34,14 @@ pub async fn ws(id: RoomId, socket: warp::ws::WebSocket) {
     let _ = tokio::try_join!(tx_handle, rx_handle);
 }
 
-pub async fn list() -> Result<impl warp::Reply, Infallible> {
+pub async fn list(db: crate::Db) -> Result<impl warp::Reply, Infallible> {
     Ok(warp::reply::html("<h1>hello</h1>"))
 }
 
-pub async fn create() -> Result<impl warp::Reply, Infallible> {
+pub async fn create(db: crate::Db) -> Result<impl warp::Reply, Infallible> {
     Ok(warp::reply::html("<h1>hello</h1>"))
 }
 
-pub async fn update() -> Result<impl warp::Reply, Infallible> {
-    Ok(warp::reply::html("<h1>hello</h1>"))
-}
-
-pub async fn fetch(id: String) -> Result<impl warp::Reply, Infallible> {
+pub async fn fetch(db: crate::Db, id: ClientId) -> Result<impl warp::Reply, Infallible> {
     Ok(warp::reply::html(format!("<h1>{}</h1>", id)))
 }

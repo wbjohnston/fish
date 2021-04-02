@@ -1,9 +1,4 @@
-use std::sync::Arc;
-
-use tokio::sync::Mutex;
 use warp::Filter;
-
-use crate::types::State;
 
 pub fn index(
     db: crate::Db,

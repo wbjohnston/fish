@@ -3,14 +3,12 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tracing::*;
-use types::*;
 use warp::Filter;
 
 mod filters;
 mod handlers;
 mod models;
 mod poker;
-mod types;
 
 const PORT: u16 = 8080;
 
@@ -31,8 +29,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     info!("connected to database");
 
-    let state = State::default();
-    let state = Arc::new(Mutex::new(state));
     let routes = filters::index(db).with(warp::trace::request());
 
     let addr = SocketAddr::from(([0, 0, 0, 0], PORT));

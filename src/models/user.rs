@@ -6,7 +6,7 @@ pub type UserId = Uuid;
 
 #[derive(Debug, sqlx::FromRow, Serialize, Deserialize)]
 pub struct User {
-    pub id: Uuid,
+    pub id: UserId,
     pub username: String,
     pub password_hash: String,
 }
@@ -19,7 +19,7 @@ pub struct NewUser {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SanitizedUser {
-    pub id: Uuid,
+    pub id: UserId,
     pub username: String,
 }
 
