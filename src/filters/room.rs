@@ -7,13 +7,15 @@ use crate::types::State;
 
 pub fn index(
     state: Arc<Mutex<State>>,
+    db: crate::Db,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-    list(state.clone()).or(create(state))
+    list(state.clone(), db.clone()).or(create(state, db))
 }
 
 /// GET /room
 fn list(
     state: Arc<Mutex<State>>,
+    db: crate::Db,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::path!("room")
         .and(warp::get())
@@ -23,6 +25,7 @@ fn list(
 /// POST /room
 fn create(
     state: Arc<Mutex<State>>,
+    db: crate::Db,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::path!("room")
         .and(warp::post())

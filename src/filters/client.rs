@@ -7,16 +7,18 @@ use crate::types::State;
 
 pub fn index(
     state: Arc<Mutex<State>>,
+    db: crate::Db,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-    list(state.clone())
-        .or(create(state.clone()))
-        .or(update(state.clone()))
-        .or(fetch(state.clone()))
-        .or(ws(state))
+    list(state.clone(), db.clone())
+        .or(create(state.clone(), db.clone()))
+        .or(update(state.clone(), db.clone()))
+        .or(fetch(state.clone(), db.clone()))
+        .or(ws(state, db))
 }
 
 fn list(
     state: Arc<Mutex<State>>,
+    db: crate::Db,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::path!("client")
         .and(warp::get())
@@ -25,6 +27,7 @@ fn list(
 
 fn create(
     state: Arc<Mutex<State>>,
+    db: crate::Db,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::path!("client")
         .and(warp::post())
@@ -33,6 +36,7 @@ fn create(
 
 fn update(
     state: Arc<Mutex<State>>,
+    db: crate::Db,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::path!("client")
         .and(warp::put())
@@ -41,6 +45,7 @@ fn update(
 
 fn fetch(
     state: Arc<Mutex<State>>,
+    db: crate::Db,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::path!("client" / String)
         .and(warp::get())
@@ -50,6 +55,7 @@ fn fetch(
 /// WS /bot/:id
 fn ws(
     state: Arc<Mutex<State>>,
+    db: crate::Db,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::path!("client" / u32)
         .and(warp::ws())
