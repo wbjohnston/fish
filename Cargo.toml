@@ -18,3 +18,4 @@ futures = "0.3.13"
 sqlx = { version = "0.5", features = [ "runtime-tokio-rustls", "postgres", "uuid", "macros", "chrono", "json" ] }
 rust-argon2 = "0.8"
 uuid = {version = "0.8.2", features = ["serde"]}
+lazy_static = "1.4.0"

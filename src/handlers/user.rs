@@ -3,7 +3,10 @@ use std::convert::Infallible;
 use uuid::Uuid;
 use warp::Reply;
 
-use crate::models::user::{SanitizedUser, User};
+use crate::{
+    models::user::{SanitizedUser, User},
+    services::auth::hash_password,
+};
 
 pub async fn list(db: crate::Db) -> Result<impl warp::Reply, Infallible> {
     let users = sqlx::query_as!(User, "SELECT * FROM users")
@@ -20,12 +23,7 @@ pub async fn create(
     db: crate::Db,
     new_user: crate::models::user::NewUser,
 ) -> Result<impl Reply, Infallible> {
-    let config = argon2::Config::default();
-    // TODO(will): randomly generate salt
-    let salt = b"randomsalt";
-
-    // TODO(will): when can this fail?
-    let hash = argon2::hash_encoded(new_user.password.as_bytes(), salt, &config).unwrap();
+    let hash = hash_password(new_user.password.as_bytes());
 
     let user: User = sqlx::query_as!(
         User,

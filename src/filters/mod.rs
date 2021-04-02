@@ -1,3 +1,4 @@
+mod auth;
 mod client;
 mod room;
 mod user;
@@ -10,6 +11,7 @@ pub fn index(
     let index = warp::path::end().map(|| warp::reply::html("not found"));
 
     index
+        .or(auth::index(db.clone()))
         .or(client::index(db.clone()))
         .or(room::index(db.clone()))
         .or(user::index(db.clone()))
