@@ -33,7 +33,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let state = State::default();
     let state = Arc::new(Mutex::new(state));
-    let routes = filters::index(state, db).with(warp::trace::request());
+    let routes = filters::index(db).with(warp::trace::request());
 
     let addr = SocketAddr::from(([0, 0, 0, 0], PORT));
     let (addr, server) = warp::serve(routes)

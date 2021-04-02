@@ -7,20 +7,13 @@ use tracing::*;
 
 use crate::poker::Table;
 
-pub async fn list(state: Arc<Mutex<State>>) -> Result<impl warp::Reply, Infallible> {
-    let rooms: Vec<_> = {
-        let lock = state.lock().await;
-        lock.rooms.iter().map(|x| format!("{:?}", x)).collect()
-    };
-
-    Ok(warp::reply::html(format!("{:?}", rooms)))
+pub async fn list() -> Result<impl warp::Reply, Infallible> {
+    Ok(warp::reply::html("ok"))
 }
 
-pub async fn create(state: Arc<Mutex<State>>) -> Result<impl warp::Reply, Infallible> {
+pub async fn create() -> Result<impl warp::Reply, Infallible> {
     info!("creating room");
     let (tx, rx) = tokio::sync::mpsc::channel(32);
-
-    state.lock().await.rooms.insert(0, tx.clone());
 
     let room = Room {
         // TODO(will): need to generate ids on the fly

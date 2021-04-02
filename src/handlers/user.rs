@@ -1,11 +1,19 @@
 use std::convert::Infallible;
 
+use uuid::Uuid;
 use warp::Reply;
 
 use crate::models::user::{SanitizedUser, User};
 
-pub async fn list() -> Result<impl warp::Reply, Infallible> {
-    Ok(warp::reply::html("<h1>hello</h1>"))
+pub async fn list(db: crate::Db) -> Result<impl warp::Reply, Infallible> {
+    let users = sqlx::query_as!(User, "SELECT * FROM users")
+        .fetch_all(&db)
+        .await
+        .unwrap();
+
+    let sanitized: Vec<_> = users.into_iter().map(SanitizedUser::from).collect();
+
+    Ok(warp::reply::json(&sanitized))
 }
 
 pub async fn create(
@@ -34,10 +42,13 @@ pub async fn create(
     Ok(warp::reply::json(&sanitized))
 }
 
-pub async fn update() -> Result<impl warp::Reply, Infallible> {
-    Ok(warp::reply::html("<h1>hello</h1>"))
-}
+pub async fn fetch(db: crate::Db, id: Uuid) -> Result<impl warp::Reply, Infallible> {
+    let user = sqlx::query_as!(User, "SELECT * FROM users WHERE id = $1 LIMIT 1", id)
+        .fetch_one(&db)
+        .await
+        .unwrap();
 
-pub async fn fetch(id: String) -> Result<impl warp::Reply, Infallible> {
-    Ok(warp::reply::html(format!("<h1>{}</h1>", id)))
+    let sanitized = SanitizedUser::from(user);
+
+    Ok(warp::reply::json(&sanitized))
 }

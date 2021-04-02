@@ -1,31 +1,24 @@
 use std::sync::Arc;
 
 use tokio::sync::Mutex;
+use uuid::Uuid;
 use warp::Filter;
 
-use crate::types::State;
-
 pub fn index(
-    state: Arc<Mutex<State>>,
     db: crate::Db,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-    list(state.clone(), db.clone())
-        .or(create(state.clone(), db.clone()))
-        .or(update(state.clone(), db.clone()))
-        .or(fetch(state, db))
+    list(db.clone())
+        .or(create(db.clone()))
+        .or(fetch(db))
 }
 
-fn list(
-    state: Arc<Mutex<State>>,
-    db: crate::Db,
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+fn list(db: crate::Db) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::path!("user")
         .and(warp::get())
-        .and_then(crate::handlers::user::list)
+        .and_then(move || crate::handlers::user::list(db.clone()))
 }
 
 fn create(
-    state: Arc<Mutex<State>>,
     db: crate::Db,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::path!("user")
@@ -36,20 +29,10 @@ fn create(
         })
 }
 
-fn update(
-    state: Arc<Mutex<State>>,
-    db: crate::Db,
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-    warp::path!("user")
-        .and(warp::put())
-        .and_then(crate::handlers::user::update)
-}
-
 fn fetch(
-    state: Arc<Mutex<State>>,
     db: crate::Db,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-    warp::path!("user" / String)
+    warp::path!("user" / Uuid)
         .and(warp::get())
-        .and_then(crate::handlers::user::fetch)
+        .and_then(move |id| crate::handlers::user::fetch(db.clone(), id))
 }
