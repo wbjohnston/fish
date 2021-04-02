@@ -1,8 +1,6 @@
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use std::net::SocketAddr;
 use std::sync::Arc;
-use std::{collections::HashMap, convert::Infallible};
-use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::Mutex;
 use tracing::*;
 use types::*;
@@ -10,6 +8,7 @@ use warp::Filter;
 
 mod filters;
 mod handlers;
+mod models;
 mod poker;
 mod types;
 
@@ -24,8 +23,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let db = PgPoolOptions::new()
         .max_connections(5)
         .connect(
-            std::env::var("POSTGRES_URL")
-                .expect("missing required environment variable 'POSTGRES_URL'")
+            std::env::var("DATABASE_URL")
+                .expect("missing required environment variable 'DATABASE_URL'")
                 .as_str(),
         )
         .await?;

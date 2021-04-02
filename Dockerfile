@@ -12,6 +12,10 @@ RUN rm src/*.rs
 # build and cache dependencies 
 COPY src ./src
 RUN rm ./target/release/deps/fish*
+COPY ./migrations migrations
+ARG DATABASE_URL
+ENV DATABASE_URL=${DATABASE_URL}
+RUN echo ${DATABASE_URL}
 RUN cargo build --release
 
 FROM debian:buster

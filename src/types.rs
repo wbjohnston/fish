@@ -1,4 +1,3 @@
-use futures::StreamExt;
 use std::collections::HashMap;
 use std::convert::Infallible;
 use tokio::sync::mpsc::{Receiver, Sender};

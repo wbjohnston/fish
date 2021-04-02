@@ -30,7 +30,10 @@ fn create(
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::path!("user")
         .and(warp::post())
-        .and_then(crate::handlers::user::create)
+        .and(warp::body::json())
+        .and_then(move |user: crate::models::user::NewUser| {
+            crate::handlers::user::create(db.clone(), user)
+        })
 }
 
 fn update(
