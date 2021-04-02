@@ -7,6 +7,6 @@ pub type SessionId = Uuid;
 
 #[derive(Debug, Clone, sqlx::FromRow, Serialize, Deserialize)]
 pub struct Session {
-    id: SessionId,
-    owner_id: UserId,
+    pub id: SessionId,
+    pub owner_id: UserId,
 }

@@ -4,7 +4,9 @@ CREATE TABLE IF NOT EXISTS clients (
 	owner_id uuid NOT NULL,
 	client_secret uuid DEFAULT uuid_generate_v4(),
 	PRIMARY KEY (id),
-	CONSTRAINT fk_owner
+	CONSTRAINT fk_owner_id
 		FOREIGN KEY (owner_id)
 			REFERENCES users(id)
 );
+
+CREATE INDEX clients_owner_id_idx ON clients (owner_id);
