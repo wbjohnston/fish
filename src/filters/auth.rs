@@ -2,8 +2,21 @@ use warp::Filter;
 
 use crate::{
     handlers::auth::LoginRequest,
-    models::{session::SessionId, user::NewUser},
+    models::{session::Session, session::SessionId, user::NewUser},
 };
+
+pub fn authorization_token_filter(
+    db: crate::Db,
+) -> impl Filter<Extract = (Session,), Error = warp::Rejection> + Clone {
+    warp::any()
+        .and(warp::header::optional("Authorization"))
+        .and(warp::cookie::optional("authorization"))
+        .and_then(
+            move |header: Option<SessionId>, cookie: Option<SessionId>| {
+                crate::handlers::auth::authorize(db.clone(), header, cookie)
+            },
+        )
+}
 
 pub fn index(
     db: crate::Db,
@@ -37,9 +50,6 @@ pub fn logout(
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::path!("auth" / "logout")
         .and(warp::get())
-        .and(warp::header::optional::<SessionId>("authorization"))
-        .and(warp::cookie::optional::<SessionId>("authorization"))
-        .and_then(move |header_session_id, cookie_session_id| {
-            crate::handlers::auth::logout(db.clone(), header_session_id, cookie_session_id)
-        })
+        .and(authorization_token_filter(db.clone()))
+        .and_then(move |session| crate::handlers::auth::logout(db.clone(), session))
 }

@@ -1,9 +1,19 @@
 use crate::models::session::{Session, SessionId};
 use crate::models::user::User;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
+use sqlx::error::Error::RowNotFound;
 use std::convert::Infallible;
+use warp::Rejection;
+
 use tracing::*;
-use warp::{http::HeaderValue, hyper::HeaderMap, reply::json, Filter};
+
+#[derive(Debug)]
+pub enum AuthError {
+    NotAuthorized,
+}
+
+impl warp::reject::Reject for AuthError {}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LoginRequest {
@@ -11,9 +21,26 @@ pub struct LoginRequest {
     password: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct LoginResponse {
-    token: SessionId,
+pub async fn authorize(
+    db: crate::Db,
+    header: Option<SessionId>,
+    cookie: Option<SessionId>,
+) -> Result<Session, Rejection> {
+    let session_id = match (header, cookie) {
+        (Some(x), _) => x,
+        (_, Some(x)) => x,
+        _ => return Err(warp::reject::custom(AuthError::NotAuthorized)),
+    };
+
+    let session = match sqlx::query_as!(Session, "SELECT * FROM sessions where id = $1", session_id)
+        .fetch_one(&db)
+        .await
+    {
+        Ok(session) => session,
+        Err(_) => return Err(warp::reject::custom(AuthError::NotAuthorized)),
+    };
+
+    Ok(session)
 }
 
 pub async fn login(db: crate::Db, req: LoginRequest) -> Result<impl warp::Reply, Infallible> {
@@ -28,7 +55,12 @@ pub async fn login(db: crate::Db, req: LoginRequest) -> Result<impl warp::Reply,
 
     if !crate::services::auth::verify_matches(req.password.as_bytes(), user.password_hash.as_str())
     {
-        todo!()
+        let response = warp::http::Response::builder()
+            .status(warp::http::StatusCode::UNAUTHORIZED)
+            .body(String::new())
+            .unwrap();
+
+        return Ok(response);
     }
 
     let session = sqlx::query_as!(
@@ -40,36 +72,41 @@ pub async fn login(db: crate::Db, req: LoginRequest) -> Result<impl warp::Reply,
     .await
     .unwrap();
 
-    let body = LoginResponse { token: session.id };
-
     let response = warp::http::Response::builder()
-        .header("Authorization", body.token.to_string())
+        .header("Authorization", session.id.to_string())
         .header(
             "Set-Cookie",
-            format!("authorization={}; Secure; HttpOnly", body.token),
+            format!(
+                "authorization={}; path=/; HttpOnly; SameSite=Strict;",
+                session.id
+            ),
         )
         .header("Content-Type", "application/json")
         .status(200)
-        .body(serde_json::to_string(&body).unwrap())
+        .body(json!({"token": session.id}).to_string())
         .unwrap();
 
     Ok(response)
 }
 
-pub async fn logout(
-    db: crate::Db,
-    header_session_id: Option<SessionId>,
-    cookie_session_id: Option<SessionId>,
-) -> Result<impl warp::Reply, Infallible> {
-    let session = sqlx::query_as!(
+pub async fn logout(db: crate::Db, session: Session) -> Result<impl warp::Reply, Infallible> {
+    let _ = sqlx::query_as!(
         Session,
-        "DELETE FROM sessions where id = $1 RETURNING *",
-        cookie_session_id.unwrap()
+        "DELETE FROM sessions WHERE id = $1 RETURNING *",
+        session.id,
     )
     .fetch_one(&db)
     .await
     .unwrap();
-    debug!(?session, "session destroyed");
 
-    Ok(warp::http::StatusCode::OK)
+    let response = warp::http::Response::builder()
+        .header(
+            "Set-Cookie",
+            "authorization=deleted; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT",
+        )
+        .status(200)
+        .body(String::new())
+        .unwrap();
+
+    Ok(response)
 }

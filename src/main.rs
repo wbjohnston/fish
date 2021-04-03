@@ -1,7 +1,5 @@
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use std::net::SocketAddr;
-use std::sync::Arc;
-use tokio::sync::Mutex;
 use tracing::*;
 use warp::Filter;
 
