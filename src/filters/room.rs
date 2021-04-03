@@ -1,5 +1,7 @@
 use warp::Filter;
 
+use super::auth::authorization_token_filter;
+
 pub fn index(
     db: crate::Db,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
@@ -19,5 +21,9 @@ fn create(
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::path!("room")
         .and(warp::post())
-        .and_then(move || crate::handlers::room::create())
+        .and(authorization_token_filter(db.clone()))
+        .and(warp::body::json())
+        .and_then(move |session, new_room| {
+            crate::handlers::room::create(db.clone(), session, new_room)
+        })
 }

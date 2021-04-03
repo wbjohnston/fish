@@ -1,6 +1,11 @@
-use super::client::ClientId;
+use crate::models::user::UserId;
+use uuid::Uuid;
 
-#[derive(Debug, sqlx::FromRow)]
+pub type RoomId = Uuid;
+
+#[derive(Debug, sqlx::FromRow, serde::Serialize, serde::Deserialize)]
 pub struct Room {
-    clients: Vec<ClientId>,
+    pub id: RoomId,
+    pub name: String,
+    pub owner_id: UserId,
 }
