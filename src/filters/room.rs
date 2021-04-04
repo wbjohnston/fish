@@ -12,7 +12,8 @@ pub fn index(
 fn list(db: crate::Db) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::path!("room")
         .and(warp::get())
-        .and_then(move || crate::handlers::room::list())
+        .and(authorization_token_filter(db.clone()))
+        .and_then(move |session| crate::handlers::room::list(db.clone(), session))
 }
 
 /// POST /room

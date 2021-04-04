@@ -3,62 +3,55 @@ use crate::models::{
     session::Session,
     user::UserId,
 };
-use futures::{SinkExt, StreamExt};
+use futures::{FutureExt, SinkExt, StreamExt};
 use std::convert::Infallible;
 use tracing::*;
-use warp::Filter;
+use warp::{ws::Message, Filter};
 
-pub async fn ws(db: crate::Db, id: ClientId, socket: warp::ws::WebSocket) {
-    let (mut tx, mut rx) = socket.split();
-
-    // TODO(will): insert client connection into hashmap
-    let (c_tx, mut c_rx) = tokio::sync::mpsc::channel(32);
-
-    let tx_handle = tokio::spawn(async move {
-        loop {
-            tokio::select! {
-                Some(x) = c_rx.recv() => {
-                    tx.send(x).await.expect("failed to send message to client");
-
-                },
+pub async fn ws(
+    db: crate::Db,
+    session: Session,
+    id: ClientId,
+    ws: warp::ws::Ws,
+) -> Result<impl warp::Reply, Infallible> {
+    // TODO(will): verify that the client owns
+    // Just echo all messages back...
+    Ok(ws.on_upgrade(move |socket| {
+        let (tx, rx) = socket.split();
+        rx.forward(tx).map(|result| {
+            if let Err(e) = result {
+                eprintln!("websocket error: {:?}", e);
             }
-        }
-    });
-
-    let rx_handle = tokio::spawn(async move {
-        loop {
-            tokio::select! {
-                Some(x) = rx.next() => {
-                    debug!("{:?}", x);
-
-                },
-            }
-        }
-    });
-
-    let _ = tokio::try_join!(tx_handle, rx_handle);
+        })
+    }))
 }
 
 pub async fn list(db: crate::Db, _session: Session) -> Result<impl warp::Reply, Infallible> {
-    Ok(warp::reply::html("<h1>hello</h1>"))
+    let clients = sqlx::query_as!(Client, "SELECT * FROM clients")
+        .fetch_all(&db)
+        .await
+        .unwrap();
+
+    // TODO(will): pagination
+
+    Ok(warp::reply::json(&clients))
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct NewClientRequest {
     pub name: String,
-    pub owner_id: UserId,
 }
 
 pub async fn create(
     db: crate::Db,
-    _session: Session,
+    session: Session,
     new_client: NewClientRequest,
 ) -> Result<impl warp::Reply, Infallible> {
     let client = sqlx::query_as!(
         crate::models::client::Client,
         "INSERT INTO clients (name, owner_id) VALUES ($1, $2) RETURNING *",
         new_client.name,
-        new_client.owner_id
+        session.owner_id
     )
     .fetch_one(&db)
     .await

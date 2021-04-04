@@ -6,8 +6,13 @@ use tracing::*;
 
 use crate::models::{room::Room, session::Session, user::UserId};
 
-pub async fn list() -> Result<impl warp::Reply, Infallible> {
-    Ok(warp::reply::html("ok"))
+pub async fn list(db: crate::Db, _session: Session) -> Result<impl warp::Reply, Infallible> {
+    let rooms = sqlx::query_as!(Room, "SELECT * FROM rooms")
+        .fetch_all(&db)
+        .await
+        .unwrap();
+
+    Ok(warp::reply::json(&rooms))
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]

@@ -13,6 +13,7 @@ pub fn index(
         .or(ws(db))
 }
 
+/// GET /client
 fn list(db: crate::Db) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::path!("client")
         .and(warp::get())
@@ -20,6 +21,7 @@ fn list(db: crate::Db) -> impl Filter<Extract = impl warp::Reply, Error = warp::
         .and_then(move |session| crate::handlers::client::list(db.clone(), session))
 }
 
+/// POST /client
 fn create(
     db: crate::Db,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
@@ -32,6 +34,7 @@ fn create(
         })
 }
 
+/// GET /client/:id
 fn fetch(
     db: crate::Db,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
@@ -43,12 +46,12 @@ fn fetch(
         })
 }
 
-/// WS /bot/:id
+/// WS /clietn/:id/ws
 fn ws(db: crate::Db) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-    warp::path!("client" / ClientId)
+    warp::path!("client" / ClientId / "ws")
+        .and(authorization_token_filter(db.clone()))
         .and(warp::ws())
-        .map(move |id, ws: warp::ws::Ws| {
-            let db = db.clone();
-            ws.on_upgrade(move |socket| crate::handlers::client::ws(db.clone(), id, socket))
+        .and_then(move |id, session, ws: warp::ws::Ws| {
+            crate::handlers::client::ws(db.clone(), session, id, ws)
         })
 }
