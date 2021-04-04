@@ -1,7 +1,7 @@
 use crate::models::{
-    client::{Client, ClientId},
+    client::{Client, ClientId, SanitizedClient},
     session::Session,
-    user::UserId,
+    user::{user_owns_client, UserId},
 };
 use futures::{FutureExt, SinkExt, StreamExt};
 use std::convert::Infallible;
@@ -14,6 +14,11 @@ pub async fn ws(
     id: ClientId,
     ws: warp::ws::Ws,
 ) -> Result<impl warp::Reply, Infallible> {
+    if !user_owns_client(db.clone(), session.owner_id, id).await {
+        // TODO(will): reject unauthorized here
+        todo!()
+    }
+
     // TODO(will): verify that the client owns
     // Just echo all messages back...
     Ok(ws.on_upgrade(move |socket| {
@@ -32,7 +37,7 @@ pub async fn list(db: crate::Db, _session: Session) -> Result<impl warp::Reply, 
         .await
         .unwrap();
 
-    // TODO(will): pagination
+    let clients: Vec<_> = clients.into_iter().map(SanitizedClient::from).collect();
 
     Ok(warp::reply::json(&clients))
 }
@@ -57,14 +62,12 @@ pub async fn create(
     .await
     .unwrap();
 
-    info!(?client, "created client");
-
     Ok(warp::reply::json(&client))
 }
 
 pub async fn fetch(
     db: crate::Db,
-    _session: Session,
+    session: Session,
     id: ClientId,
 ) -> Result<impl warp::Reply, Infallible> {
     let client = match sqlx::query_as!(Client, "SELECT * FROM clients WHERE id = $1", id)
@@ -80,8 +83,15 @@ pub async fn fetch(
         }
     };
 
-    Ok(warp::reply::with_status(
-        warp::reply::json(&client),
-        warp::http::StatusCode::OK,
-    ))
+    if user_owns_client(db.clone(), session.owner_id, id).await {
+        Ok(warp::reply::with_status(
+            warp::reply::json(&client),
+            warp::http::StatusCode::OK,
+        ))
+    } else {
+        Ok(warp::reply::with_status(
+            warp::reply::json(&SanitizedClient::from(client)),
+            warp::http::StatusCode::OK,
+        ))
+    }
 }

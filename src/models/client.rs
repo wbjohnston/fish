@@ -15,3 +15,20 @@ pub struct Client {
 
     pub client_secret: ClientSecret,
 }
+
+#[derive(Debug, sqlx::FromRow, serde::Serialize, serde::Deserialize)]
+pub struct SanitizedClient {
+    pub id: ClientId,
+    pub name: String,
+    pub owner_id: UserId,
+}
+
+impl From<Client> for SanitizedClient {
+    fn from(x: Client) -> Self {
+        Self {
+            id: x.id,
+            name: x.name,
+            owner_id: x.owner_id,
+        }
+    }
+}

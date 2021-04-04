@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
 // use sqlx::types::Uuid;
+use crate::models::client::Client;
 use sqlx::types::uuid::Uuid;
+
+use super::client::ClientId;
 
 pub type UserId = Uuid;
 
@@ -29,5 +32,20 @@ impl From<User> for SanitizedUser {
             id: user.id,
             username: user.username,
         }
+    }
+}
+
+pub async fn user_owns_client(db: crate::Db, user_id: UserId, client_id: ClientId) -> bool {
+    match sqlx::query_as!(
+        Client,
+        "SELECT * FROM clients where id = $1 AND owner_id = $2",
+        client_id,
+        user_id
+    )
+    .fetch_one(&db)
+    .await
+    {
+        Ok(_) => true,
+        _ => false,
     }
 }
