@@ -5,7 +5,7 @@ CREATE TABLE games (
 	owner_id uuid NOT NULL,
 	button_seat_number int NOT NULL DEFAULT 0,
 	active_seat_number int NOT NULL DEFAULT 0,
-	pot int NOT NULL,
+	pot int NOT NULL DEFAULT 0,
 	PRIMARY KEY (id),
 	CONSTRAINT fk_deck_id
 		FOREIGN KEY (deck_id)

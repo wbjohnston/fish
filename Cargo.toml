@@ -19,3 +19,5 @@ sqlx = { version = "0.5", features = [ "runtime-tokio-rustls", "postgres", "uuid
 rust-argon2 = "0.8"
 uuid = {version = "0.8.2", features = ["serde"]}
 lazy_static = "1.4.0"
+rand = "0.8.3"
+itertools = "0.10.0"

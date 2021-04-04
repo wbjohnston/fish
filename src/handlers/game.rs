@@ -1,10 +1,9 @@
-use tokio::sync::Mutex;
-
 use std::convert::Infallible;
-use std::{collections::HashMap, sync::Arc};
-use tracing::*;
 
-use crate::models::{game::Game, session::Session, user::UserId};
+use crate::{
+    models::{game::Game, session::Session, user::UserId},
+    services::deck::{create_deck, draw_n, draw_next, shuffle_deck},
+};
 
 pub async fn list(db: crate::Db, _session: Session) -> Result<impl warp::Reply, Infallible> {
     let games = sqlx::query_as!(Game, "SELECT * FROM games")
@@ -25,11 +24,14 @@ pub async fn create(
     session: Session,
     new_game: NewGameRequest,
 ) -> Result<impl warp::Reply, Infallible> {
+    let deck_id = create_deck(db.clone()).await.unwrap();
+
     let game = sqlx::query_as!(
         Game,
-        "INSERT INTO games (name, owner_id) VALUES ($1, $2) RETURNING *",
+        "INSERT INTO games (name, owner_id, deck_id) VALUES ($1, $2, $3) RETURNING *",
         new_game.name,
-        session.owner_id
+        session.owner_id,
+        deck_id
     )
     .fetch_one(&db)
     .await

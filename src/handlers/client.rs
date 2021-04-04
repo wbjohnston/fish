@@ -5,7 +5,6 @@ use crate::models::{
 };
 use futures::{FutureExt, StreamExt};
 use std::convert::Infallible;
-use warp::{ws::Message, Filter};
 
 pub async fn ws(
     db: crate::Db,
