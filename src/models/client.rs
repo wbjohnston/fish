@@ -12,8 +12,6 @@ pub struct Client {
     pub name: String,
 
     pub owner_id: UserId,
-
-    pub client_secret: ClientSecret,
 }
 
 #[derive(Debug, sqlx::FromRow, serde::Serialize, serde::Deserialize)]

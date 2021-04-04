@@ -3,7 +3,6 @@ CREATE TABLE IF NOT EXISTS clients (
 	id uuid DEFAULT uuid_generate_v4 (),
 	name TEXT NOT NULL,
 	owner_id uuid NOT NULL,
-	client_secret uuid DEFAULT uuid_generate_v4() NOT NULL,
 	PRIMARY KEY (id),
 	CONSTRAINT fk_owner_id
 		FOREIGN KEY (owner_id)
