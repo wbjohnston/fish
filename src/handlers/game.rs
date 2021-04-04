@@ -1,8 +1,8 @@
 use std::convert::Infallible;
 
 use crate::{
-    models::{game::Game, session::Session, user::UserId},
-    services::deck::{create_deck, draw_n, draw_next, shuffle_deck},
+    models::{game::Game, session::Session},
+    services::deck::create_deck,
 };
 
 pub async fn list(db: crate::Db, _session: Session) -> Result<impl warp::Reply, Infallible> {

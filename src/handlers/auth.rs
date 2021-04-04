@@ -2,11 +2,8 @@ use crate::models::session::{Session, SessionId};
 use crate::models::user::User;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use sqlx::error::Error::RowNotFound;
 use std::convert::Infallible;
 use warp::Rejection;
-
-use tracing::*;
 
 #[derive(Debug)]
 pub enum AuthError {

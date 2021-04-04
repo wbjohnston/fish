@@ -3,7 +3,6 @@ use crate::models::{
     card::Card,
     deck::{Deck, DeckId},
 };
-use itertools::Itertools;
 use rand::seq::SliceRandom;
 
 fn generate_deck<'a>() -> impl Iterator<Item = (i32, &'a str, &'a str)> {
