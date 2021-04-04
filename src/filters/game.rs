@@ -8,23 +8,23 @@ pub fn index(
     list(db.clone()).or(create(db))
 }
 
-/// GET /room
+/// GET /game
 fn list(db: crate::Db) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-    warp::path!("room")
+    warp::path!("game")
         .and(warp::get())
         .and(authorization_token_filter(db.clone()))
-        .and_then(move |session| crate::handlers::room::list(db.clone(), session))
+        .and_then(move |session| crate::handlers::game::list(db.clone(), session))
 }
 
-/// POST /room
+/// POST /game
 fn create(
     db: crate::Db,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-    warp::path!("room")
+    warp::path!("game")
         .and(warp::post())
         .and(authorization_token_filter(db.clone()))
         .and(warp::body::json())
-        .and_then(move |session, new_room| {
-            crate::handlers::room::create(db.clone(), session, new_room)
+        .and_then(move |session, new_game| {
+            crate::handlers::game::create(db.clone(), session, new_game)
         })
 }

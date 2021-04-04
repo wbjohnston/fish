@@ -1,11 +1,10 @@
 use crate::models::{
     client::{Client, ClientId, SanitizedClient},
     session::Session,
-    user::{user_owns_client, UserId},
+    user::user_owns_client,
 };
-use futures::{FutureExt, SinkExt, StreamExt};
+use futures::{FutureExt, StreamExt};
 use std::convert::Infallible;
-use tracing::*;
 use warp::{ws::Message, Filter};
 
 pub async fn ws(
