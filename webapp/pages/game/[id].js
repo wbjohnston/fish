@@ -1,22 +1,22 @@
-import 'antd/dist/antd.css'
 import { Table } from 'antd'
+import { useRouter } from 'next/router'
+import { useEffect, useState } from 'react';
+import Layout from '../../components/AuthedLayout'
+import { fetchGame } from '../../lib/api';
 
 export default function ListGamePage() {
-    const colums = [
-        {
-            title: "name",
-            dataIndex: 'name'
-        },
-        {
+    const router = useRouter();
+    const [game, setGame] = useState({});
+
+    useEffect(() => {
+        if (!router.isReady) {
+            return
         }
-    ]
-
-    const dummy = [
-        {
-            name: "foobar"
-        }
-    ];
+        fetchGame(router.query.id).then(setGame)
+    }, [])
 
 
-    return <Table dataSource={data} columns={columns} />
+    return <Layout>
+        <h1>{game.name}</h1>
+    </Layout>
 }

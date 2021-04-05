@@ -1,18 +1,31 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Layout from '../components/Layout';
 import { login } from '../lib/api'
 
 import { Form, Input, Button, Checkbox } from 'antd';
 import { useRouter } from 'next/router';
+import useAuth from '../lib/hooks/UseAuth';
 
 export default function LoginPage() {
     const router = useRouter()
+    const { user, signin } = useAuth();
 
     function handleLoginSubmit({ username, password }) {
-        login(username, password).then(x => {
-            router.push("/game")
-        }).catch(x => console.error(x))
+        signin(username, password).then(x => {
+            router.push("/client")
+        })
     }
+
+    useEffect(() => {
+        if (!router.isReady) {
+            return
+        }
+
+        if (user) {
+            router.push("/client")
+        }
+    }, [])
+
 
     const onFinishFailed = (errorInfo) => {
         console.log('Failed:', errorInfo);

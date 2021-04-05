@@ -1,22 +1,23 @@
 import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react';
+import Layout from '../../components/AuthedLayout';
 import { fetchClient } from '../../lib/api';
 
 
 export default function FetchClient() {
     const router = useRouter();
-
-    const { id } = router.query;
-
     const [client, setClient] = useState({});
 
     useEffect(() => {
         if (!router.isReady) {
             return
         }
-        fetchClient(id).then(x => setClient(x))
-    }, [id])
+        fetchClient(router.query.id).then(setClient)
+    }, [])
 
 
-    return <div>{JSON.stringify(client)}</div>
+
+    return <Layout>
+        <h1>{client.name}</h1>
+    </Layout>
 }

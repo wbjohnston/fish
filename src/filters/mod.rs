@@ -1,6 +1,7 @@
 pub mod auth;
 pub mod client;
 pub mod game;
+pub mod me;
 pub mod user;
 
 use warp::Filter;
@@ -15,4 +16,5 @@ pub fn index(
         .or(client::index(db.clone()))
         .or(game::index(db.clone()))
         .or(user::index(db.clone()))
+        .or(me::index(db.clone()))
 }

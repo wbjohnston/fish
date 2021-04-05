@@ -1,8 +1,7 @@
 import { Button, Input, Table } from 'antd'
-import Layout from '../../components/Layout'
+import Layout from '../../components/AuthedLayout'
 import { useRouter } from "next/router"
 import { useEffect, useState } from 'react';
-import { route } from 'next/dist/next-server/server/router';
 import { listGames } from '../../lib/api';
 import { Form } from 'antd'
 
@@ -19,6 +18,13 @@ export default function ListGamePage() {
 
     }, [])
 
+    function onRow(row) {
+        return {
+            onClick: () => {
+                router.push(`/game/${row.id}`)
+            }
+        }
+    }
 
     const columns = [
         {
@@ -52,6 +58,6 @@ export default function ListGamePage() {
             </Form.Item>
         </Form>
         <h2>Current Games</h2>
-        <Table dataSource={games} columns={columns} />
+        <Table onRow={onRow} dataSource={games} columns={columns} />
     </Layout>
 }

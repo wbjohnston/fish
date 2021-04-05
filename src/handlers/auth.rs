@@ -96,7 +96,7 @@ pub async fn logout(db: crate::Db, session: Session) -> Result<impl warp::Reply,
     let response = warp::http::Response::builder()
         .header(
             "Set-Cookie",
-            "authorization=deleted; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT",
+            "authorization=deleted; path=/; HttpOnly; expires=Thu, 01 Jan 1970 00:00:00 GMT",
         )
         .status(200)
         .body(String::new())

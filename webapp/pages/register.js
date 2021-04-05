@@ -9,9 +9,9 @@ import { useRouter } from 'next/router'
 export default function LoginPage() {
     const router = useRouter()
 
-    function handleLoginSubmit({ username, password }) {
-        login(username, password).then(x => {
-            router.push("/game")
+    function handleRegisterSubmit({ username, password }) {
+        register(username, password).then(x => {
+            router.push("/login")
         }).catch(x => console.error(x))
     }
 
@@ -24,7 +24,7 @@ export default function LoginPage() {
         <Form
             name="basic"
             initialValues={{ remember: true }}
-            onFinish={handleLoginSubmit}
+            onFinish={handleRegisterSubmit}
             onFinishFailed={onFinishFailed}
         >
             <Form.Item

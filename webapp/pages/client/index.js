@@ -1,22 +1,28 @@
 import { Table } from 'antd'
+import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
-import Layout from '../../components/Layout'
+import Layout from '../../components/AuthedLayout'
 import { listClients } from '../../lib/api'
 
 
 
 
 export default function ListClients() {
+    const router = useRouter();
 
     const [clients, setClients] = useState([])
 
     useEffect(() => {
-        listClients().then(x => {
-            console.log(x)
-            setClients(x)
-        })
+        listClients().then(setClients)
     }, [])
 
+    function onRow(row) {
+        return {
+            onClick: () => {
+                router.push(`/client/${row.id}`)
+            }
+        }
+    }
 
     const columns = [
         {
@@ -27,6 +33,7 @@ export default function ListClients() {
     ]
 
     return <Layout activeNavKey="clients">
-        <Table dataSource={clients} columns={columns} />
+        <h1>Clients</h1>
+        <Table onRow={onRow} dataSource={clients} columns={columns} />
     </Layout>
 }

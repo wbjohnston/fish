@@ -1,9 +1,6 @@
 use std::convert::Infallible;
 
-use crate::{
-    models::{game::Game, session::Session},
-    services::deck::create_deck,
-};
+use crate::{models::{game::{Game, GameId}, session::Session}, services::deck::create_deck};
 
 pub async fn list(db: crate::Db) -> Result<impl warp::Reply, Infallible> {
     let games = sqlx::query_as!(Game, "SELECT * FROM games")
@@ -36,6 +33,18 @@ pub async fn create(
     .fetch_one(&db)
     .await
     .unwrap();
+
+    Ok(warp::reply::with_status(
+        warp::reply::json(&game),
+        warp::http::StatusCode::OK,
+    ))
+}
+
+pub async fn fetch(db: crate::Db, id: GameId) -> Result<impl warp::Reply, Infallible> {
+    let game = sqlx::query_as!(Game, "SELECT * FROM games WHERE id = $1", id)
+        .fetch_one(&db)
+        .await
+        .unwrap();
 
     Ok(warp::reply::with_status(
         warp::reply::json(&game),
