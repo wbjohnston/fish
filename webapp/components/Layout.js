@@ -31,11 +31,6 @@ function NavMenu({ activeNavKey }) {
                 <a>Users</a>
             </Link>
         </Menu.Item>
-        <Menu.Item key="client">
-            <Link href="/client" passHref>
-                <a>Clients</a>
-            </Link>
-        </Menu.Item>
         <Menu.Item key="game">
             <Link href="/game" passHref>
                 <a>Games</a>

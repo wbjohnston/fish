@@ -1,17 +1,6 @@
 import { Agent } from "http"
 import axios from "axios"
 
-/**
- * @returns Promise<object[]>
- */
-export async function listClients() {
-    const response = await axios.get('http://localhost:8080/client', {
-        withCredentials: true,
-    });
-
-    return response.data
-}
-
 export async function listUsers() {
     const response = await axios.get("http://localhost:8080/user", { withCredentials: true })
 
@@ -24,12 +13,6 @@ export async function listGames() {
     return response.data
 }
 
-export async function fetchClient(id) {
-    const response = await axios.get(`http://localhost:8080/client/${id}`, { withCredentials: true })
-
-
-    return response.data
-}
 
 export async function fetchGame(id) {
     const response = await axios.get(`http://localhost:8080/game/${id}`, { withCredentials: true })
