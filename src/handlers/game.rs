@@ -1,12 +1,15 @@
 use std::convert::Infallible;
 
-use crate::{models::{game::{Game, GameId}, session::Session}, services::deck::create_deck};
+use crate::models::{
+    game::create_game,
+    game::fetch_game,
+    game::list_games,
+    game::{Game, GameId},
+    session::Session,
+};
 
 pub async fn list(db: crate::Db) -> Result<impl warp::Reply, Infallible> {
-    let games = sqlx::query_as!(Game, "SELECT * FROM games")
-        .fetch_all(&db)
-        .await
-        .unwrap();
+    let games = list_games(db).await.unwrap();
 
     Ok(warp::reply::json(&games))
 }
@@ -21,18 +24,9 @@ pub async fn create(
     session: Session,
     new_game: NewGameRequest,
 ) -> Result<impl warp::Reply, Infallible> {
-    let deck_id = create_deck(db.clone()).await.unwrap();
-
-    let game = sqlx::query_as!(
-        Game,
-        "INSERT INTO games (name, owner_id, deck_id) VALUES ($1, $2, $3) RETURNING *",
-        new_game.name,
-        session.owner_id,
-        deck_id
-    )
-    .fetch_one(&db)
-    .await
-    .unwrap();
+    let game = create_game(db.clone(), new_game.name, session.owner_id)
+        .await
+        .unwrap();
 
     Ok(warp::reply::with_status(
         warp::reply::json(&game),
@@ -41,10 +35,7 @@ pub async fn create(
 }
 
 pub async fn fetch(db: crate::Db, id: GameId) -> Result<impl warp::Reply, Infallible> {
-    let game = sqlx::query_as!(Game, "SELECT * FROM games WHERE id = $1", id)
-        .fetch_one(&db)
-        .await
-        .unwrap();
+    let game = fetch_game(db, id).await.unwrap();
 
     Ok(warp::reply::with_status(
         warp::reply::json(&game),

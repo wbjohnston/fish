@@ -10,7 +10,7 @@ import useAuth from '../lib/hooks/UseAuth'
 function NavMenu({ activeNavKey }) {
     const { user } = useAuth();
     if (!user) {
-        return <Menu theme="dark" mode="horizontal">
+        return <Menu style={{ float: 'right' }} theme="dark" mode="horizontal">
             <Menu.Item key="login">
                 <Link href="/login">
                     <a>Login</a>
@@ -25,35 +25,39 @@ function NavMenu({ activeNavKey }) {
     }
 
 
-    return <Menu activeKey={activeNavKey} theme="dark" mode="horizontal">
-        <Menu.Item key="users">
-            <Link href="/user" passHref>
-                <a>Users</a>
-            </Link>
-        </Menu.Item>
-        <Menu.Item key="game">
-            <Link href="/game" passHref>
-                <a>Games</a>
-            </Link>
-        </Menu.Item>
-        <SubMenu key="user" title={user.username} icon={<UserOutlined />}>
-            <Menu.Item key="profile">
-                <Link href="/me" passHref>
-                    <a>Profile</a>
+    return <>
+        <Menu style={{ float: 'left' }} activeKey={activeNavKey} theme="dark" mode="horizontal">
+            <Menu.Item key="users">
+                <Link href="/user" passHref>
+                    <a>Users</a>
                 </Link>
             </Menu.Item>
-            <Menu.Item key="logout">
-                <Link href="/logout" passHref>
-                    <a>Logout</a>
+            <Menu.Item key="game">
+                <Link href="/game" passHref>
+                    <a>Games</a>
                 </Link>
             </Menu.Item>
-        </SubMenu>
-    </Menu>
+        </Menu>
+        <Menu theme="dark" mode="horizontal" style={{ float: 'right' }}>
+            <SubMenu key="user" title={user.username} icon={<UserOutlined />}>
+                <Menu.Item key="profile">
+                    <Link href="/me" passHref>
+                        <a>Profile</a>
+                    </Link>
+                </Menu.Item>
+                <Menu.Item key="logout">
+                    <Link href="/logout" passHref>
+                        <a>Logout</a>
+                    </Link>
+                </Menu.Item>
+            </SubMenu>
+        </Menu>
+    </>
 }
 
 
 export default function Layout({ children, activeNavKey, title }) {
-    return <ALayout className="layout" title={title}>
+    return <ALayout style={{ minHeight: '100vh' }} className="layout" title={title}>
         <ALayout.Header>
             <NavMenu activeNavKey={activeNavKey} />
         </ALayout.Header>

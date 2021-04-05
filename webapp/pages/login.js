@@ -12,7 +12,7 @@ export default function LoginPage() {
 
     function handleLoginSubmit({ username, password }) {
         signin(username, password).then(x => {
-            router.push("/client")
+            router.push("/game")
         })
     }
 
@@ -22,7 +22,7 @@ export default function LoginPage() {
         }
 
         if (user) {
-            router.push("/client")
+            router.push("/game")
         }
     }, [])
 

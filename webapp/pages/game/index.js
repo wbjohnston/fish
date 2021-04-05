@@ -2,7 +2,7 @@ import { Button, Input, Table } from 'antd'
 import Layout from '../../components/AuthedLayout'
 import { useRouter } from "next/router"
 import { useEffect, useState } from 'react';
-import { listGames } from '../../lib/api';
+import { createGame, listGames } from '../../lib/api';
 import { Form } from 'antd'
 
 export default function ListGamePage() {
@@ -44,7 +44,7 @@ export default function ListGamePage() {
 
     return <Layout activeNavKey="games" title="fish | games">
         <h2>Create a game</h2>
-        <Form >
+        <Form onFinish={({ name }) => createGame({ name })} >
             <Form.Item
                 label="Name"
                 name="name"

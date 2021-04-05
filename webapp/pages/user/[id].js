@@ -1,4 +1,4 @@
-import { Table } from 'antd'
+import { Card, Table, Typography } from 'antd'
 import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react';
 import Layout from '../../components/AuthedLayout'
@@ -18,5 +18,14 @@ export default function ListGamePage() {
 
     return <Layout>
         <h1>{user.username}</h1>
+
+        <Card title="Raw JSON">
+            <pre>
+                <Typography code>
+                    {JSON.stringify(user, null, 2)}
+                </Typography>
+            </pre>
+
+        </Card>
     </Layout>
 }

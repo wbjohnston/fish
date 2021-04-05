@@ -14,6 +14,12 @@ export async function listGames() {
 }
 
 
+export async function createGame({ name }) {
+    const response = await axios.post('http://localhost:8080/game', { name }, { withCredentials: true })
+
+    return response.data
+}
+
 export async function fetchGame(id) {
     const response = await axios.get(`http://localhost:8080/game/${id}`, { withCredentials: true })
 
