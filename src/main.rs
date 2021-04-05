@@ -27,7 +27,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     info!("connected to database");
 
-    let routes = filters::index(db).with(warp::trace::request());
+    let cors = warp::cors()
+        .allow_any_origin()
+        .allow_headers(vec![
+            "User-Agent",
+            "Sec-Fetch-Mode",
+            "Referer",
+            "Origin",
+            "Access-Control-Request-Method",
+            "Access-Control-Request-Headers",
+            "Content-Type",
+        ])
+        .allow_methods(vec!["POST", "GET"]);
+
+    let routes = filters::index(db).with(warp::trace::request()).with(cors);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], PORT));
     let (addr, server) = warp::serve(routes)

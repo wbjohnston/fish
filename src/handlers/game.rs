@@ -5,7 +5,7 @@ use crate::{
     services::deck::create_deck,
 };
 
-pub async fn list(db: crate::Db, _session: Session) -> Result<impl warp::Reply, Infallible> {
+pub async fn list(db: crate::Db) -> Result<impl warp::Reply, Infallible> {
     let games = sqlx::query_as!(Game, "SELECT * FROM games")
         .fetch_all(&db)
         .await

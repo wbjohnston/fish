@@ -63,7 +63,7 @@ pub async fn ws(
     }))
 }
 
-pub async fn list(db: crate::Db, _session: Session) -> Result<impl warp::Reply, Infallible> {
+pub async fn list(db: crate::Db) -> Result<impl warp::Reply, Infallible> {
     let clients = sqlx::query_as!(Client, "SELECT * FROM clients")
         .fetch_all(&db)
         .await

@@ -73,10 +73,7 @@ pub async fn login(db: crate::Db, req: LoginRequest) -> Result<impl warp::Reply,
         .header("Authorization", session.id.to_string())
         .header(
             "Set-Cookie",
-            format!(
-                "authorization={}; path=/; HttpOnly; SameSite=Strict;",
-                session.id
-            ),
+            format!("authorization={}; path=/; HttpOnly;;", session.id),
         )
         .header("Content-Type", "application/json")
         .status(200)
