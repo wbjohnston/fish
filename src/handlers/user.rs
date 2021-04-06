@@ -1,12 +1,22 @@
 use futures::{SinkExt, StreamExt};
+use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
 use tracing::*;
 
 use uuid::Uuid;
-use warp::{ws::Message, Reply};
+use warp::{ws::Message as WsMessage, Reply};
 
 use crate::{
+    models::game::join_game,
+    models::game::leave_game,
+    models::game::sit_player_at_first_available_seat,
+    models::game::sit_player_at_seat,
+    models::game::stand_player,
     models::{
+        game::bet_player,
+        game::fold_player,
+        game::get_table,
+        game::Table,
         game::{Chips, GameId, SeatNumber},
         session::Session,
         user::{SanitizedUser, User, UserId},
@@ -67,39 +77,77 @@ pub async fn ws(
     // Just echo all messages back...
     Ok(ws.on_upgrade(move |socket| async {
         let (mut sink, mut stream) = socket.split();
-
-        info!("opened connection");
-
         let (tx, mut rx) = tokio::sync::mpsc::channel(32);
 
         let rx_handle = tokio::spawn(async move {
             while let Some(Ok(x)) = stream.next().await {
-                let command: Command =
+                let message: Message =
                     serde_json::from_str(x.to_str().expect("unable to convert to str"))
                         .expect("unable to deserialize message");
 
-                dbg!(command);
+                match message.action {
+                    Action::Join => {
+                        join_game(db.clone(), message.game_id, session.owner_id)
+                            .await
+                            .unwrap();
+                    }
+                    Action::Bet { amount } => {
+                        bet_player(db.clone(), message.game_id, session.owner_id, amount)
+                            .await
+                            .unwrap();
+                    }
+                    Action::Leave => {
+                        leave_game(db.clone(), message.game_id, session.owner_id)
+                            .await
+                            .unwrap();
+                    }
+                    Action::Fold => {
+                        fold_player(db.clone(), message.game_id, session.owner_id)
+                            .await
+                            .unwrap();
+                    }
+                    Action::Stand => {
+                        stand_player(db.clone(), message.game_id, session.owner_id)
+                            .await
+                            .unwrap();
+                    }
+                    Action::Sit { seat_number: None } => {
+                        sit_player_at_first_available_seat(
+                            db.clone(),
+                            message.game_id,
+                            session.owner_id,
+                        )
+                        .await
+                        .unwrap();
+                    }
+                    Action::Sync => {
+                        let table = get_table(db.clone(), message.game_id).await.unwrap();
+                        tx.send(Event::Update {
+                            game_id: message.game_id,
+                            table,
+                        })
+                        .await
+                        .unwrap();
+                    }
+                    Action::Sit {
+                        seat_number: Some(x),
+                    } => {
+                        sit_player_at_seat(db.clone(), message.game_id, session.owner_id, x)
+                            .await
+                            .unwrap();
+                    }
+                    _ => unimplemented!(),
+                }
 
-                tx.send(Event::NewState {
-                    table: Table {
-                        game_id: Default::default(),
-                        name: "foobar".to_string(),
-                        owner_id: Default::default(),
-                        cards: vec![],
-                        button_seat_number: 0,
-                        active_seat_number: 0,
-                        pot: 0,
-                        players: vec![],
-                    },
-                })
-                .await
-                .unwrap();
+                let response = Event::Acknowledge { message };
+
+                tx.send(response).await.expect("failed to send to sender");
             }
         });
 
         let tx_handle = tokio::spawn(async move {
             while let Some(event) = rx.recv().await {
-                sink.send(Message::text(serde_json::to_string(&event).unwrap()))
+                sink.send(WsMessage::text(serde_json::to_string(&event).unwrap()))
                     .await
                     .unwrap();
             }
@@ -109,78 +157,46 @@ pub async fn ws(
     }))
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(tag = "kind", content = "options")]
-pub enum Command {
-    JoinGame(GameId),
-    LeaveGame(GameId),
-    SubmitMove { game_id: GameId, payload: Move },
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(tag = "kind", content = "options")]
-pub enum Move {
-    Fold,
-    Bet(Chips),
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub enum Event {
-    NewState { table: Table },
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct Table {
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Message {
     pub game_id: GameId,
-    pub name: String,
-    pub owner_id: UserId,
-    pub cards: Vec<Card>,
-    pub button_seat_number: SeatNumber,
-    pub active_seat_number: SeatNumber,
-    pub pot: Chips,
-    pub players: Vec<Player>,
+    pub action: Action,
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct Player {
-    pub hand: Option<[Card; 2]>,
-    pub status: Status,
-    pub bet: Chips,
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Event {
+    /// A new game was created
+    NewGame {
+        game_id: GameId,
+    },
+    /// A game's state has been updated
+    Update {
+        game_id: GameId,
+        table: Table,
+    },
+    /// Acknowledging a user command
+    Acknowledge {
+        message: Message,
+    },
+    Error {},
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub enum Status {
-    Standing,
-    Folded,
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct Card {
-    value: Value,
-    suit: Suit,
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub enum Suit {
-    Diamonds,
-    Clubs,
-    Spades,
-    Hearts,
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub enum Value {
-    Two,
-    Three,
-    Four,
-    Five,
-    Six,
-    Seven,
-    Eight,
-    Nine,
-    Ten,
-    Jack,
-    Queen,
-    King,
-    Ace,
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(tag = "kind", content = "options")]
+#[serde(rename_all = "camelCase")]
+pub enum Action {
+    Sync,
+    Stand,
+    Fold,
+    Leave,
+    Join,
+    Bet {
+        amount: Chips,
+    },
+    Sit {
+        /// The seat to to sit down at. If not specified the first available seat will be taken
+        seat_number: Option<SeatNumber>,
+    },
 }

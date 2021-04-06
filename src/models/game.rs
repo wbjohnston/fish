@@ -1,4 +1,5 @@
 use crate::models::user::UserId;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use super::{
@@ -61,7 +62,7 @@ pub async fn create_game(
 
     let game = sqlx::query_as!(
         Game,
-        "INSERT INTO games (name, owner_id, deck_id) VALUES ($1, $2, $3) RETURNING *",
+        "INSERT INTO games (name, owner_id, deck_id, status) VALUES ($1, $2, $3, DEFAULT) RETURNING *",
         name,
         owner_id,
         deck_id
@@ -73,6 +74,104 @@ pub async fn create_game(
     tx.commit().await.unwrap();
 
     Ok(game)
+}
+
+pub async fn stand_player(
+    db: crate::Db,
+    game_id: GameId,
+    user_id: UserId,
+) -> Result<(), Box<dyn std::error::Error>> {
+    sqlx::query!(
+        r#"
+        update players
+            set status = 'spectating',
+                seat_number = null
+            where
+                user_id = $1 and
+                game_id = $2
+        "#,
+        user_id,
+        game_id
+    )
+    .execute(&db)
+    .await
+    .unwrap();
+
+    Ok(())
+}
+
+pub async fn sit_player_at_first_available_seat(
+    db: crate::Db,
+    game_id: GameId,
+    user_id: UserId,
+) -> Result<SeatNumber, Box<dyn std::error::Error>> {
+    let seat = sqlx::query_scalar!(
+        r#"
+            update players
+                set status = 'playing',
+                    seat_number = foo.next_seat_number
+                        from (select min(bizbaz.seat_number) as next_seat_number from (
+                        select generate_series as seat_number from generate_series(0, 5) except
+                        select seat_number from players where
+                            game_id = $1 and 
+                            seat_number is not null
+                    ) as bizbaz) as foo
+                    where
+                        user_id = $2 and seat_number is null and game_id = $1
+            returning (seat_number)
+        "#,
+        game_id,
+        user_id
+    )
+    .fetch_one(&db)
+    .await
+    .unwrap()
+    .unwrap();
+
+    Ok(seat)
+}
+
+pub async fn sit_player_at_seat(
+    db: crate::Db,
+    game_id: GameId,
+    user_id: UserId,
+    seat_number: SeatNumber,
+) -> Result<(), Box<dyn std::error::Error>> {
+    sqlx::query!(
+        r#"
+        update players
+            set seat_number = $1,
+                status = 'playing'
+            where
+                user_id =  $2 AND
+                game_id = $3
+        "#,
+        seat_number,
+        user_id,
+        game_id,
+    )
+    .execute(&db)
+    .await
+    .unwrap();
+
+    Ok(())
+}
+
+pub async fn fold_player(
+    db: crate::Db,
+    game_id: GameId,
+    user_id: UserId,
+) -> Result<(), Box<dyn std::error::Error>> {
+    todo!()
+}
+
+pub async fn bet_player(
+    db: crate::Db,
+    game_id: GameId,
+    user_id: UserId,
+    amount: Chips,
+) -> Result<(), Box<dyn std::error::Error>> {
+    todo!()
 }
 
 pub async fn deal_cards_to_players(
@@ -87,6 +186,16 @@ pub async fn deal_cards_to_players(
     4: 4 10
     5: 5 11
     */
+    todo!()
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Table {}
+
+pub async fn get_table(
+    db: crate::Db,
+    game_id: GameId,
+) -> Result<Table, Box<dyn std::error::Error>> {
     todo!()
 }
 
@@ -111,7 +220,27 @@ pub async fn join_game(
     game_id: GameId,
     user_id: UserId,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    todo!()
+    sqlx::query!(
+        r#"
+            INSERT INTO players (
+                user_id,
+                game_id
+            ) VALUES (
+                $1,
+                $2
+            ) ON CONFLICT DO NOTHING
+        "#,
+        user_id,
+        game_id
+    )
+    .execute(&db)
+    .await
+    .unwrap();
+
+    // TODO(will): handle the case that the game doesnt exist
+    // TODO(will): handle the case that the user doesn't exist
+
+    Ok(())
 }
 
 pub async fn leave_game(
@@ -119,5 +248,44 @@ pub async fn leave_game(
     game_id: GameId,
     user_id: UserId,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    todo!()
+    sqlx::query!(
+        r#"
+            DELETE FROM players WHERE user_id = $1 AND game_id = $2
+        "#,
+        user_id,
+        game_id
+    )
+    .execute(&db)
+    .await
+    .unwrap();
+
+    Ok(())
 }
+
+pub enum PlayerStatus {
+    Standing,
+    Playing,
+    Folded,
+    Spectating,
+}
+
+static PLAYER_STATUSES: phf::Map<&'static str, PlayerStatus> = phf::phf_map! {
+    "standing" => PlayerStatus::Standing,
+    "playing" => PlayerStatus::Playing,
+    "folded" => PlayerStatus::Folded,
+    "spectating" => PlayerStatus::Spectating,
+};
+
+pub enum GameStatus {
+    Created,
+    Running,
+    Ended,
+    Paused,
+}
+
+static GAME_STATUSES: phf::Map<&'static str, GameStatus> = phf::phf_map! {
+    "created" => GameStatus::Created,
+    "running" => GameStatus::Running,
+    "ended" => GameStatus::Ended,
+    "paused" => GameStatus::Paused,
+};

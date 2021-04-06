@@ -21,3 +21,4 @@ uuid = {version = "0.8.2", features = ["serde"]}
 lazy_static = "1.4.0"
 rand = "0.8.3"
 itertools = "0.10.0"
+phf = { version = "0.8", features = ["macros"]}

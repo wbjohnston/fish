@@ -16,7 +16,7 @@ pub fn verify_matches(password: &[u8], hash: &str) -> bool {
 
 pub fn hash_password(password: &[u8]) -> String {
     // TODO(will): generate better salt
-    let salt = vec![0; password.len() * 2];
+    let salt = vec![0; 128];
 
     argon2::hash_encoded(password, salt.as_slice(), &ARGON2_CONFIG).unwrap()
 }

@@ -9,8 +9,6 @@ use crate::models::card::Card;
 use crate::models::card::{SUITS, VALUES};
 use rand::seq::SliceRandom;
 
-use super::user::UserId;
-
 fn generate_deck<'a>() -> impl Iterator<Item = (i32, &'a str, &'a str)> {
     let all_cards = itertools::iproduct!(SUITS.iter(), VALUES.iter());
     let (len, _) = all_cards.size_hint();
@@ -161,14 +159,6 @@ pub async fn draw_next(db: crate::Db, deck_id: DeckId) -> Result<Card, Box<dyn s
     tx.commit().await.unwrap();
 
     Ok(card)
-}
-
-pub async fn deal_n_to_user(
-    db: crate::Db,
-    user_id: UserId,
-    n: i32,
-) -> Result<Vec<Card>, Box<dyn std::error::Error>> {
-    todo!()
 }
 
 pub async fn draw_n(
