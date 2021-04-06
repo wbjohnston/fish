@@ -9,6 +9,8 @@ use crate::models::card::Card;
 use crate::models::card::{SUITS, VALUES};
 use rand::seq::SliceRandom;
 
+use super::user::UserId;
+
 fn generate_deck<'a>() -> impl Iterator<Item = (i32, &'a str, &'a str)> {
     let all_cards = itertools::iproduct!(SUITS.iter(), VALUES.iter());
     let (len, _) = all_cards.size_hint();
@@ -63,7 +65,7 @@ pub async fn shuffle_deck<'a>(
     Ok(())
 }
 
-pub async fn deal_flop(
+pub async fn _deal_flop(
     db: crate::Db,
     deck_id: DeckId,
 ) -> Result<Vec<Card>, Box<dyn std::error::Error>> {
@@ -73,21 +75,24 @@ pub async fn deal_flop(
     Ok(cards)
 }
 
-pub async fn deal_turn(db: crate::Db, deck_id: DeckId) -> Result<Card, Box<dyn std::error::Error>> {
+pub async fn _deal_turn(
+    db: crate::Db,
+    deck_id: DeckId,
+) -> Result<Card, Box<dyn std::error::Error>> {
     // draw an extra card to burn it
     let card = draw_n(db, deck_id, 2).await?;
 
     Ok(card[0].clone())
 }
 
-pub async fn deal_river(
+pub async fn _deal_river(
     db: crate::Db,
     deck_id: DeckId,
 ) -> Result<Card, Box<dyn std::error::Error>> {
-    deal_turn(db, deck_id).await
+    _deal_turn(db, deck_id).await
 }
 
-pub async fn create_deck(db: crate::Db) -> Result<DeckId, Box<dyn std::error::Error>> {
+pub async fn _create_deck(db: crate::Db) -> Result<DeckId, Box<dyn std::error::Error>> {
     let tx = db.begin().await.unwrap();
 
     let (tx, deck_id) = create_deck_transaction(tx).await?;
@@ -107,10 +112,17 @@ pub async fn create_deck_transaction<'a>(
 
     let cards_iter = generate_deck();
 
-    let mut _cards = vec![];
     for (position, suit, value) in cards_iter {
-        let card = sqlx::query_as!(Card, "INSERT INTO card_to_deck (deck_id, position, suit, value) VALUES ($1, $2, $3, $4) RETURNING *", deck.id, position, suit, value).fetch_one(&mut tx).await.unwrap();
-        _cards.push(card);
+        sqlx::query!(
+            "INSERT INTO card_to_deck (deck_id, position, suit, value) VALUES ($1, $2, $3, $4)",
+            deck.id,
+            position,
+            suit,
+            value
+        )
+        .execute(&mut tx)
+        .await
+        .unwrap();
     }
 
     Ok((tx, deck.id))
@@ -123,7 +135,7 @@ pub async fn draw_next(db: crate::Db, deck_id: DeckId) -> Result<Card, Box<dyn s
         Card,
         r#"
         SELECT
-            id, deck_id, position, value, suit
+            id, value, suit
         FROM card_to_deck
         WHERE deck_id = $1 AND position = (SELECT (position) FROM decks WHERE id = $1)
         "#,
@@ -151,6 +163,14 @@ pub async fn draw_next(db: crate::Db, deck_id: DeckId) -> Result<Card, Box<dyn s
     Ok(card)
 }
 
+pub async fn deal_n_to_user(
+    db: crate::Db,
+    user_id: UserId,
+    n: i32,
+) -> Result<Vec<Card>, Box<dyn std::error::Error>> {
+    todo!()
+}
+
 pub async fn draw_n(
     db: crate::Db,
     deck_id: DeckId,
@@ -162,7 +182,7 @@ pub async fn draw_n(
         Card,
         r#"
         SELECT
-            id, deck_id, position, value, suit
+            id, value, suit
         FROM card_to_deck
         WHERE
             deck_id = $1

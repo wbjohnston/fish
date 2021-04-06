@@ -1,11 +1,11 @@
 -- Add up migration script here
 -- Add up migration script here
-CREATE TABLE user_to_game (
+CREATE TABLE players (
 	user_id uuid NOT NULL,
 	game_id uuid NOT NULL,
 	stack int NOT NULL,
-	hand_id uuid NOT NULL,
-	seat_number int NOT NULL,
+	hand_id uuid,
+	seat_number int,
 	status varchar(16) NOT NULL,
 	PRIMARY KEY (user_id, game_id),
 	CONSTRAINT fk_user_id
@@ -17,9 +17,9 @@ CREATE TABLE user_to_game (
 	CONSTRAINT fk_hand_id
 		FOREIGN KEY (hand_id)
 			REFERENCES hands(id),
-	CONSTRAINT fk_game_status
+	CONSTRAINT fk_player_status
 		FOREIGN KEY (status)
-			REFERENCES game_status(name)
+			REFERENCES player_status(name)
 );
 
-CREATE INDEX user_to_game_id_seat_number_idx ON user_to_game (game_id, seat_number);
+CREATE INDEX players_id_seat_number_idx ON players (game_id, seat_number);

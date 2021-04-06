@@ -9,5 +9,6 @@ CREATE TABLE hands (
 	CONSTRAINT fk_second_card_id
 		FOREIGN KEY (second_card_id)
 			REFERENCES card_to_deck(id),
+	UNIQUE (first_card_id, second_card_id),
 	PRIMARY KEY (id)
 );

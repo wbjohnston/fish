@@ -6,7 +6,11 @@ CREATE TABLE games (
 	button_seat_number int NOT NULL DEFAULT 0,
 	active_seat_number int NOT NULL DEFAULT 0,
 	pot int NOT NULL DEFAULT 0,
+	status varchar(16) NOT NULL,
 	PRIMARY KEY (id),
+	CONSTRAINT fk_status
+		FOREIGN KEY (status)
+			REFERENCES game_status(name),
 	CONSTRAINT fk_deck_id
 		FOREIGN KEY (deck_id)
 			REFERENCES decks(id),
