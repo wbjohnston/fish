@@ -30,7 +30,7 @@ export default function ListGamePage() {
         <h2>RAW</h2>
         <Card>
             <pre>
-                <Typography code>
+                <Typography code="json">
                     {JSON.stringify(game, null, 2)}
                 </Typography>
             </pre>

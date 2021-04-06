@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react'
 import Layout from '../components/Layout';
-import { login } from '../lib/api'
-
-import { Form, Input, Button, Checkbox } from 'antd';
+import { Form, Input, Button, Checkbox, notification } from 'antd';
 import { useRouter } from 'next/router';
 import useAuth from '../lib/hooks/UseAuth';
 
@@ -11,9 +9,15 @@ export default function LoginPage() {
     const { user, signin } = useAuth();
 
     function handleLoginSubmit({ username, password }) {
-        signin(username, password).then(x => {
-            router.push("/game")
-        })
+        signin(username, password)
+            .then(x => {
+                notification.open({
+                    message: 'Succesfully logged in'
+                })
+            })
+            .then(x => {
+                router.push("/game")
+            })
     }
 
     useEffect(() => {
@@ -35,7 +39,6 @@ export default function LoginPage() {
         <h1>Login</h1>
         <Form
             name="basic"
-            initialValues={{ remember: true }}
             onFinish={handleLoginSubmit}
             onFinishFailed={onFinishFailed}
         >
@@ -53,10 +56,6 @@ export default function LoginPage() {
                 rules={[{ required: true, message: 'Please input your password!' }]}
             >
                 <Input.Password />
-            </Form.Item>
-
-            <Form.Item name="remember" valuePropName="checked">
-                <Checkbox>Remember me</Checkbox>
             </Form.Item>
 
             <Form.Item >

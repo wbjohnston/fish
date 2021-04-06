@@ -2,6 +2,7 @@ import Layout from '../components/Layout'
 import { useRouter } from 'next/router';
 import { useEffect } from 'react';
 import useAuth from '../lib/hooks/UseAuth';
+import { notification } from 'antd';
 
 
 
@@ -15,7 +16,9 @@ export default function LogoutPage() {
             return
         }
 
-        signout().then(_ => router.push("/login"))
+        signout()
+            .then(_ => notification.open({ message: 'successfully logged out' }))
+            .then(_ => router.push("/login"))
     }, [])
 
 

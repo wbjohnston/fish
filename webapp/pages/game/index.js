@@ -1,4 +1,4 @@
-import { Button, Input, Table } from 'antd'
+import { Button, Input, notification, Table } from 'antd'
 import Layout from '../../components/AuthedLayout'
 import { useRouter } from "next/router"
 import { useEffect, useState } from 'react';
@@ -8,6 +8,18 @@ import { Form } from 'antd'
 export default function ListGamePage() {
     const router = useRouter();
     const [games, setGames] = useState([]);
+
+    function handleNewGameSubmit({ name }) {
+        createGame({ name })
+            .then(game => {
+                notification.open({
+                    message: `successfully created game '${game.name}'`
+                })
+            })
+            .then(_ => {
+                listGames().then(setGames)
+            })
+    }
 
     useEffect(() => {
         if (!router.isReady) {
@@ -44,7 +56,7 @@ export default function ListGamePage() {
 
     return <Layout activeNavKey="games" title="fish | games">
         <h2>Create a game</h2>
-        <Form onFinish={({ name }) => createGame({ name })} >
+        <Form onFinish={handleNewGameSubmit} >
             <Form.Item
                 label="Name"
                 name="name"

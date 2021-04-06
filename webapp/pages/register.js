@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { register } from '../lib/api'
-import { Form, Button, Input, } from 'antd'
+import { Form, Button, Input, notification } from 'antd'
 import Layout from '../components/Layout'
 import { useRouter } from 'next/router'
 
@@ -10,9 +10,15 @@ export default function LoginPage() {
     const router = useRouter()
 
     function handleRegisterSubmit({ username, password }) {
-        register(username, password).then(x => {
-            router.push("/login")
-        }).catch(x => console.error(x))
+        register(username, password)
+            .then(x => {
+                notification.open({
+                    message: 'succesfully registered'
+                })
+            })
+            .then(x => {
+                router.push("/login")
+            }).catch(x => console.error(x))
     }
 
     const onFinishFailed = (errorInfo) => {

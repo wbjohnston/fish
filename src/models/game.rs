@@ -190,7 +190,21 @@ pub async fn deal_cards_to_players(
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Table {}
+pub struct Table {
+    pub cards: Vec<Card>,
+    pub players: Vec<Option<Player>>,
+    pub pot: Chips,
+    pub active_seat_number: SeatNumber,
+    pub button_seat_number: SeatNumber,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Player {
+    id: UserId,
+    hand: Option<(Card, Card)>,
+    stack: Chips,
+}
 
 pub async fn get_table(
     db: crate::Db,
@@ -205,7 +219,7 @@ pub async fn get_players_hand(
     user_id: UserId,
 ) -> Result<Vec<Card>, Box<dyn std::error::Error>> {
     let cards = sqlx::query_as!(Card, r#"
-        SELECT card_to_deck.id, card_to_deck.value, card_to_deck.suit FROM hands
+        SELECT card_to_deck.value, card_to_deck.suit FROM hands
         JOIN players ON players.hand_id = hands.id
         JOIN users ON users.id = players.user_id 
         JOIN card_to_deck ON card_to_deck.id = hands.first_card_id OR card_to_deck.id = hands.second_card_id
@@ -262,6 +276,8 @@ pub async fn leave_game(
     Ok(())
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum PlayerStatus {
     Standing,
     Playing,
@@ -269,13 +285,15 @@ pub enum PlayerStatus {
     Spectating,
 }
 
-static PLAYER_STATUSES: phf::Map<&'static str, PlayerStatus> = phf::phf_map! {
+pub static PLAYER_STATUSES: phf::Map<&'static str, PlayerStatus> = phf::phf_map! {
     "standing" => PlayerStatus::Standing,
     "playing" => PlayerStatus::Playing,
     "folded" => PlayerStatus::Folded,
     "spectating" => PlayerStatus::Spectating,
 };
 
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum GameStatus {
     Created,
     Running,
@@ -283,7 +301,7 @@ pub enum GameStatus {
     Paused,
 }
 
-static GAME_STATUSES: phf::Map<&'static str, GameStatus> = phf::phf_map! {
+pub static GAME_STATUSES: phf::Map<&'static str, GameStatus> = phf::phf_map! {
     "created" => GameStatus::Created,
     "running" => GameStatus::Running,
     "ended" => GameStatus::Ended,

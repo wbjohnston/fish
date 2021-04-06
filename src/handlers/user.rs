@@ -73,8 +73,6 @@ pub async fn ws(
     _id: UserId,
     ws: warp::ws::Ws,
 ) -> Result<impl warp::Reply, Infallible> {
-    // TODO(will): verify that the client owns
-    // Just echo all messages back...
     Ok(ws.on_upgrade(move |socket| async {
         let (mut sink, mut stream) = socket.split();
         let (tx, mut rx) = tokio::sync::mpsc::channel(32);

@@ -10,7 +10,10 @@ use crate::models::card::{SUITS, VALUES};
 use rand::seq::SliceRandom;
 
 fn generate_deck<'a>() -> impl Iterator<Item = (i32, &'a str, &'a str)> {
-    let all_cards = itertools::iproduct!(SUITS.iter(), VALUES.iter());
+    // FIXME(will): is this allocation necessary?
+    let suits: Vec<_> = SUITS.keys().collect();
+    let values: Vec<_> = VALUES.keys().collect();
+    let all_cards = itertools::iproduct!(suits, values);
     let (len, _) = all_cards.size_hint();
 
     let mut positions: Vec<_> = (0i32..len as i32).collect();
@@ -133,7 +136,7 @@ pub async fn draw_next(db: crate::Db, deck_id: DeckId) -> Result<Card, Box<dyn s
         Card,
         r#"
         SELECT
-            id, value, suit
+            value, suit
         FROM card_to_deck
         WHERE deck_id = $1 AND position = (SELECT (position) FROM decks WHERE id = $1)
         "#,
@@ -172,7 +175,7 @@ pub async fn draw_n(
         Card,
         r#"
         SELECT
-            id, value, suit
+            value, suit
         FROM card_to_deck
         WHERE
             deck_id = $1
