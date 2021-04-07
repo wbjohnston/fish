@@ -1,11 +1,6 @@
 use serde::{Deserialize, Serialize};
 use sqlx::types::uuid::Uuid;
 
-use super::{
-    game::SeatNumber,
-    game::{Chips, GameId},
-};
-
 pub type UserId = Uuid;
 
 #[derive(Debug, sqlx::FromRow, Serialize, Deserialize)]

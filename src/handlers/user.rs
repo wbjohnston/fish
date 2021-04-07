@@ -1,28 +1,12 @@
 use futures::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
-use tracing::*;
+
 
 use uuid::Uuid;
 use warp::{ws::Message as WsMessage, Reply};
 
-use crate::{
-    models::game::join_game,
-    models::game::leave_game,
-    models::game::sit_player_at_first_available_seat,
-    models::game::sit_player_at_seat,
-    models::game::stand_player,
-    models::{
-        game::bet_player,
-        game::fold_player,
-        game::get_table,
-        game::Table,
-        game::{Chips, GameId, SeatNumber},
-        session::Session,
-        user::{SanitizedUser, User, UserId},
-    },
-    services::auth::hash_password,
-};
+use crate::{models::game::join_game, models::game::leave_game, models::game::sit_player_at_first_available_seat, models::game::sit_player_at_seat, models::game::stand_player, models::{game::Table, game::bet_player, game::deal_flop, game::deal_turn, game::fold_player, game::get_table, game::{Chips, GameId, SeatNumber}, session::Session, game::deal_river, user::{SanitizedUser, User, UserId}}, services::auth::hash_password};
 
 pub async fn list(db: crate::Db) -> Result<impl warp::Reply, Infallible> {
     let users = sqlx::query_as!(User, "SELECT * FROM users")
@@ -73,12 +57,14 @@ pub async fn ws(
     _id: UserId,
     ws: warp::ws::Ws,
 ) -> Result<impl warp::Reply, Infallible> {
+    // TODO(will): kill connection if a session is killed
     Ok(ws.on_upgrade(move |socket| async {
         let (mut sink, mut stream) = socket.split();
         let (tx, mut rx) = tokio::sync::mpsc::channel(32);
 
         let rx_handle = tokio::spawn(async move {
             while let Some(Ok(x)) = stream.next().await {
+                dbg!(&x);
                 let message: Message =
                     serde_json::from_str(x.to_str().expect("unable to convert to str"))
                         .expect("unable to deserialize message");
@@ -117,6 +103,16 @@ pub async fn ws(
                         )
                         .await
                         .unwrap();
+                        deal_flop(db.clone(), message.game_id).await.unwrap();
+                        deal_turn(db.clone(), message.game_id).await.unwrap();
+                        deal_river(db.clone(), message.game_id).await.unwrap();
+                    }
+                    Action::Sit {
+                        seat_number: Some(x),
+                    } => {
+                        sit_player_at_seat(db.clone(), message.game_id, session.owner_id, x)
+                            .await
+                            .unwrap();
                     }
                     Action::Sync => {
                         let table = get_table(db.clone(), message.game_id).await.unwrap();
@@ -127,14 +123,6 @@ pub async fn ws(
                         .await
                         .unwrap();
                     }
-                    Action::Sit {
-                        seat_number: Some(x),
-                    } => {
-                        sit_player_at_seat(db.clone(), message.game_id, session.owner_id, x)
-                            .await
-                            .unwrap();
-                    }
-                    _ => unimplemented!(),
                 }
 
                 let response = Event::Acknowledge { message };

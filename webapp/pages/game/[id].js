@@ -1,15 +1,16 @@
-import { Card, Table, Typography } from 'antd'
+import { Button, Card, Table, Typography } from 'antd'
 import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react';
 import Layout from '../../components/AuthedLayout'
 import { fetchGame } from '../../lib/api';
 import useAuth from '../../lib/hooks/UseAuth';
+import useWebsocket from '../../lib/hooks/UseWebsocket';
 
 export default function ListGamePage() {
     const router = useRouter();
     const { user } = useAuth();
     const [game, setGame] = useState({});
-    const [websocket, setWebsocket] = useState(null);
+    const { websocket } = useWebsocket();
 
     useEffect(() => {
         if (!router.isReady) {
@@ -19,13 +20,53 @@ export default function ListGamePage() {
     }, [])
 
 
-    useEffect(() => {
-        const websocket = new WebSocket(`ws://localhost:8080/me/ws`)
-        setWebsocket(websocket)
-    }, [])
+    function sitGame() {
+        if (!websocket) {
+            // throw error
+        }
+
+        websocket.send(JSON.stringify({
+            gameId: router.query.id,
+            action: {
+                kind: 'sit',
+                options: {}
+            }
+        }))
+
+    }
+
+    function leaveGame() {
+        if (!websocket) {
+            // throw error
+        }
+
+        websocket.send(JSON.stringify({
+            gameId: router.query.id,
+            action: {
+                kind: 'leave'
+            }
+        }))
+    }
+
+    function joinGame() {
+        if (!websocket) {
+            // throw error
+        }
+
+        websocket.send(JSON.stringify({
+            gameId: router.query.id,
+            action: {
+                kind: 'join'
+            }
+        }))
+    }
 
     return <Layout>
         <h1>Game: {game.name}</h1>
+
+        <Button onClick={joinGame} color="green">Join Game</Button>
+        <Button onClick={sitGame} color="green">Sit</Button>
+        <Button onClick={leaveGame} color="green">Leave </Button>
 
         <h2>RAW</h2>
         <Card>

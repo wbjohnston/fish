@@ -4,7 +4,7 @@ use crate::models::{
     game::create_game,
     game::fetch_game,
     game::list_games,
-    game::{Game, GameId},
+    game::{GameId},
     session::Session,
 };
 

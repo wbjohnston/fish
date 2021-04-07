@@ -1,17 +1,16 @@
 use crate::models::user::UserId;
 use serde::{Deserialize, Serialize};
+use tracing::*;
 use uuid::Uuid;
 
 use super::{
-    card::Card,
+    card::{Card, CardId},
     deck::{create_deck_transaction, DeckId},
     hand::HandId,
 };
 
 pub type GameId = Uuid;
-
 pub type Chips = i32;
-
 pub type SeatNumber = i32;
 
 #[derive(Debug, sqlx::FromRow, serde::Serialize, serde::Deserialize)]
@@ -22,6 +21,11 @@ pub struct Game {
     pub deck_id: DeckId,
     pub button_seat_number: SeatNumber,
     pub active_seat_number: SeatNumber,
+    pub flop_1_card_id: Option<CardId>,
+    pub flop_2_card_id: Option<CardId>,
+    pub flop_3_card_id: Option<CardId>,
+    pub turn_card_id: Option<CardId>,
+    pub river_card_id: Option<CardId>,
     pub pot: Chips,
     pub status: String,
 }
@@ -157,6 +161,118 @@ pub async fn sit_player_at_seat(
     Ok(())
 }
 
+pub async fn deal_flop(db: crate::Db, game_id: GameId) -> Result<(), Box<dyn std::error::Error>> {
+    let mut tx = db.begin().await.unwrap();
+
+    debug!("IN HERE");
+
+    sqlx::query!(
+        r#"
+            with current_deck as (
+                select * from decks where id = (select deck_id from games where id = $1)
+            )
+            update games
+                set
+                    flop_1_card_id = (select id from card_to_deck where deck_id = games.deck_id AND position = (select position from current_deck) + 1),
+                    flop_2_card_id = (select id from card_to_deck where deck_id = games.deck_id AND position = (select position from current_deck) + 2),
+                    flop_3_card_id = (select id from card_to_deck where deck_id = games.deck_id AND position = (select position from current_deck) + 3)
+            where
+                id = $1
+        "#,
+        game_id
+    ).execute(&mut tx).await.unwrap();
+
+    sqlx::query!(
+        r#"
+            update decks
+                set
+                    position = position + 4
+            where id = (select deck_id from games where id = $1)
+        "#,
+        game_id
+    )
+    .execute(&mut tx)
+    .await
+    .unwrap();
+
+    tx.commit().await.unwrap();
+
+    Ok(())
+}
+
+pub async fn deal_turn(db: crate::Db, game_id: GameId) -> Result<(), Box<dyn std::error::Error>> {
+    let mut tx = db.begin().await.unwrap();
+
+    debug!("IN HERE");
+
+    sqlx::query!(
+        r#"
+            with current_deck as (
+                select * from decks where id = (select deck_id from games where id = $1)
+            )
+            update games
+                set
+                    turn_card_id = (select id from card_to_deck where deck_id = games.deck_id AND position = (select position from current_deck) + 1)
+            where
+                id = $1
+        "#,
+        game_id
+    ).execute(&mut tx).await.unwrap();
+
+    sqlx::query!(
+        r#"
+            update decks
+                set
+                    position = position + 2
+            where id = (select deck_id from games where id = $1)
+        "#,
+        game_id
+    )
+    .execute(&mut tx)
+    .await
+    .unwrap();
+
+    tx.commit().await.unwrap();
+
+    Ok(())
+}
+
+pub async fn deal_river(db: crate::Db, game_id: GameId) -> Result<(), Box<dyn std::error::Error>> {
+    let mut tx = db.begin().await.unwrap();
+
+    debug!("IN HERE");
+
+    sqlx::query!(
+        r#"
+            with current_deck as (
+                select * from decks where id = (select deck_id from games where id = $1)
+            )
+            update games
+                set
+                    river_card_id = (select id from card_to_deck where deck_id = games.deck_id AND position = (select position from current_deck) + 1)
+            where
+                id = $1
+        "#,
+        game_id
+    ).execute(&mut tx).await.unwrap();
+
+    sqlx::query!(
+        r#"
+            update decks
+                set
+                    position = position + 2
+            where id = (select deck_id from games where id = $1)
+        "#,
+        game_id
+    )
+    .execute(&mut tx)
+    .await
+    .unwrap();
+
+    tx.commit().await.unwrap();
+    Ok(())
+}
+
 pub async fn fold_player(
     db: crate::Db,
     game_id: GameId,
@@ -178,6 +294,23 @@ pub async fn deal_cards_to_players(
     db: crate::Db,
     game_id: GameId,
 ) -> Result<Vec<(UserId, Vec<Card>)>, Box<dyn std::error::Error>> {
+    // sqlx::query!(
+    //     r#"
+    //         with current_players as (
+    //             select * from players where game_id = $1
+    //         )
+    //         update players
+    //             set
+
+    //         where
+    //             game_id=$1
+    //     "#,
+    //     game_id
+    // )
+    // .execute(&db)
+    // .await
+    // .unwrap();
+
     /*
     0: 0 6
     1: 1 7
@@ -189,6 +322,120 @@ pub async fn deal_cards_to_players(
     todo!()
 }
 
+pub async fn remove_community_cards<'a>(
+    mut tx: sqlx::Transaction<'a, sqlx::Postgres>,
+    game_id: GameId,
+) -> Result<sqlx::Transaction<'a, sqlx::Postgres>, Box<dyn std::error::Error>> {
+    sqlx::query!(
+        r#"
+            update games
+            set
+                flop_1_card_id = null, 
+                flop_2_card_id = null, 
+                flop_3_card_id = null, 
+                turn_card_id = null, 
+                river_card_id = null
+            where
+                id = $1
+        "#,
+        game_id
+    )
+    .execute(&mut tx)
+    .await?;
+    Ok(tx)
+}
+
+pub async fn shuffle_game_deck_transaction<'a>(
+    mut tx: sqlx::Transaction<'a, sqlx::Postgres>,
+    game_id: GameId,
+) -> Result<sqlx::Transaction<'a, sqlx::Postgres>, Box<dyn std::error::Error>> {
+    let deck_id = sqlx::query_scalar!("select deck_id from games where id = $1", game_id)
+        .fetch_one(&mut tx)
+        .await?;
+
+    let tx = super::deck::shuffle_deck_transaction(tx, deck_id).await?;
+
+    Ok(tx)
+}
+
+pub async fn remove_player_cards<'a>(
+    mut tx: sqlx::Transaction<'a, sqlx::Postgres>,
+    game_id: GameId,
+) -> Result<sqlx::Transaction<'a, sqlx::Postgres>, Box<dyn std::error::Error>> {
+    sqlx::query!(
+        r#"
+            delete from hands where id in (select hand_id from players where game_id=$1)
+        "#,
+        game_id
+    )
+    .execute(&mut tx)
+    .await?;
+
+    Ok(tx)
+}
+
+pub async fn distribute_winnings<'a>(
+    mut tx: sqlx::Transaction<'a, sqlx::Postgres>,
+    game_id: GameId,
+) -> Result<sqlx::Transaction<'a, sqlx::Postgres>, Box<dyn std::error::Error>> {
+    todo!()
+}
+
+pub async fn round_is_over(
+    db: crate::Db,
+    game_id: GameId,
+) -> Result<bool, Box<dyn std::error::Error>> {
+    todo!()
+}
+
+pub async fn player_is_last_to_act(
+    db: crate::Db,
+    game_id: GameId,
+    user_id: UserId,
+) -> Result<bool, Box<dyn std::error::Error>> {
+    todo!()
+}
+
+pub async fn advance_button<'a>(
+    tx: sqlx::Transaction<'a, sqlx::Postgres>,
+    game_id: GameId,
+) -> Result<sqlx::Transaction<'a, sqlx::Postgres>, Box<dyn std::error::Error>> {
+    todo!()
+}
+
+pub async fn game_is_over<'a>(
+    db: crate::Db,
+    game_id: GameId,
+) -> Result<bool, Box<dyn std::error::Error>> {
+    todo!()
+}
+
+pub async fn end_round(db: crate::Db, game_id: GameId) -> Result<(), Box<dyn std::error::Error>> {
+    /*
+    1. delete community cards
+    2. delete player cards
+    3. write to stats table
+    4. reshuffle cards
+    5. distribute pot to winner
+    6. advance button
+    */
+    let tx = db.begin().await.unwrap();
+
+    let tx = remove_community_cards(tx, game_id).await?;
+    let tx = remove_player_cards(tx, game_id).await?;
+    let tx = shuffle_game_deck_transaction(tx, game_id).await?;
+    let tx = distribute_winnings(tx, game_id).await?;
+    let tx = advance_button(tx, game_id).await?;
+
+    tx.commit().await.unwrap();
+
+    if game_is_over(db, game_id).await? {
+        todo!()
+    }
+
+    todo!()
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Table {
     pub cards: Vec<Card>,
@@ -196,14 +443,17 @@ pub struct Table {
     pub pot: Chips,
     pub active_seat_number: SeatNumber,
     pub button_seat_number: SeatNumber,
+    pub status: GameStatus,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Player {
-    id: UserId,
-    hand: Option<(Card, Card)>,
-    stack: Chips,
+    pub id: UserId,
+    pub bet: Option<Chips>,
+    pub hand: Option<Vec<Card>>,
+    pub stack: Chips,
+    pub status: PlayerStatus,
 }
 
 pub async fn get_table(
@@ -211,22 +461,6 @@ pub async fn get_table(
     game_id: GameId,
 ) -> Result<Table, Box<dyn std::error::Error>> {
     todo!()
-}
-
-pub async fn get_players_hand(
-    db: crate::Db,
-    game_id: GameId,
-    user_id: UserId,
-) -> Result<Vec<Card>, Box<dyn std::error::Error>> {
-    let cards = sqlx::query_as!(Card, r#"
-        SELECT card_to_deck.value, card_to_deck.suit FROM hands
-        JOIN players ON players.hand_id = hands.id
-        JOIN users ON users.id = players.user_id 
-        JOIN card_to_deck ON card_to_deck.id = hands.first_card_id OR card_to_deck.id = hands.second_card_id
-        WHERE users.id = $1 AND players.game_id = $2
-    "#, user_id, game_id).fetch_all(&db).await.unwrap();
-
-    Ok(cards)
 }
 
 pub async fn join_game(

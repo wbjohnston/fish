@@ -1,14 +1,16 @@
-import { Layout as ALayout, Menu } from 'antd'
+import { Layout as ALayout, Menu, notification } from 'antd'
 import { UserOutlined } from '@ant-design/icons'
 import SubMenu from 'antd/lib/menu/SubMenu';
 import Link from 'next/link'
-import React from "react"
+import React, { useEffect } from "react"
 import useAuth from '../lib/hooks/UseAuth'
+import useWebsocket from '../lib/hooks/UseWebsocket';
 
 
 
 function NavMenu({ activeNavKey }) {
     const { user } = useAuth();
+
     if (!user) {
         return <Menu style={{ float: 'right' }} theme="dark" mode="horizontal">
             <Menu.Item key="login">
@@ -57,6 +59,23 @@ function NavMenu({ activeNavKey }) {
 
 
 export default function Layout({ children, activeNavKey, title }) {
+    const { websocket } = useWebsocket();
+    useEffect(() => {
+        if (!websocket) {
+            return
+        }
+
+        function handleMessage(e) {
+            notification.open({
+                message: e.data
+            })
+        }
+
+        websocket.addEventListener("message", handleMessage)
+        return () => {
+            websocket.removeEventListener('message', handleMessage)
+        }
+    }, [websocket])
     return <ALayout style={{ minHeight: '100vh' }} className="layout" title={title}>
         <ALayout.Header>
             <NavMenu activeNavKey={activeNavKey} />
