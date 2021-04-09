@@ -5,9 +5,9 @@ import { useRouter } from 'next/router';
 import Layout from '../../components/AuthedLayout';
 import { fetchUser } from '../../lib/api';
 
-export default function ListGamePage() {
+export default function ListGamePage({ initialUser }) {
   const router = useRouter();
-  const [user, setUser] = useState({});
+  const [user, setUser] = useState(initialUser);
 
   useEffect(() => {
     if (!router.isReady) {
@@ -30,4 +30,14 @@ export default function ListGamePage() {
       </Card>
     </Layout>
   );
+}
+
+export async function getServerSideProps(context) {
+  const initialUser = await fetchUser(context.query.id);
+
+  return {
+    props: {
+      initialUser,
+    },
+  };
 }

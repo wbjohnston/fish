@@ -10,19 +10,12 @@ import useAuth from '../../lib/hooks/UseAuth';
 import useWebsocket from '../../lib/hooks/UseWebsocket';
 import PokerTable from '../../components/PokerTable';
 
-export default function ListGamePage() {
+export default function ListGamePage({ initialGame }) {
   const { user } = useAuth();
-  const [game, setGame] = useState({});
+  const [game, setGame] = useState(initialGame);
   const [table, setTable] = useState(null);
   const { websocket } = useWebsocket();
   const router = useRouter();
-
-  useEffect(() => {
-    if (!router.isReady) {
-      return;
-    }
-    fetchGame(router.query.id).then(setGame);
-  }, []);
 
   function handleTableUpdate(newTable) {
     setTable(newTable);
@@ -175,4 +168,14 @@ export default function ListGamePage() {
       <PokerTable table={table} />
     </Layout>
   );
+}
+
+export async function getServerSideProps(context) {
+  const initialGame = await fetchGame(context.query.id);
+
+  return {
+    props: {
+      initialGame,
+    },
+  };
 }
