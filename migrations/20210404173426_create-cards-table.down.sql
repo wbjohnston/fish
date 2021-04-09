@@ -1,2 +1,2 @@
 -- Add down migration script here
-DROP TABLE IF EXISTS hands;
+DROP TABLE IF EXISTS cards;

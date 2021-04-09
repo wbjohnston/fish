@@ -26,7 +26,7 @@ fn generate_deck<'a>() -> impl Iterator<Item = (i32, &'a str, &'a str)> {
 }
 
 pub async fn shuffle_deck_transaction<'a>(mut tx: Tx<'a>, deck_id: DeckId) -> Result<Tx<'a>> {
-    sqlx::query!("DELETE FROM card_to_deck WHERE deck_id = $1", deck_id)
+    sqlx::query!("DELETE FROM cards WHERE deck_id = $1", deck_id)
         .execute(&mut tx)
         .await
         .unwrap();
@@ -38,7 +38,7 @@ pub async fn shuffle_deck_transaction<'a>(mut tx: Tx<'a>, deck_id: DeckId) -> Re
 
     for (position, suit, value) in generate_deck() {
         let _ = sqlx::query!(
-            "INSERT INTO card_to_deck (deck_id, position, suit, value) VALUES ($1, $2, $3, $4)",
+            "INSERT INTO cards (deck_id, position, suit, value) VALUES ($1, $2, $3, $4)",
             deck_id,
             position,
             suit,
@@ -62,7 +62,7 @@ pub async fn create_deck_transaction<'a>(mut tx: Tx<'a>) -> Result<(Tx<'a>, Deck
 
     for (position, suit, value) in cards_iter {
         sqlx::query!(
-            "INSERT INTO card_to_deck (deck_id, position, suit, value) VALUES ($1, $2, $3, $4)",
+            "INSERT INTO cards (deck_id, position, suit, value) VALUES ($1, $2, $3, $4)",
             deck.id,
             position,
             suit,

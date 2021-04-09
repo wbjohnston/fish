@@ -23,9 +23,9 @@ pub struct Game {
     pub button_seat_number: SeatNumber,
     pub active_seat_number: SeatNumber,
     pub last_to_bet_seat_number: Option<SeatNumber>,
-    pub flop_1_card_id: Option<CardId>,
-    pub flop_2_card_id: Option<CardId>,
-    pub flop_3_card_id: Option<CardId>,
+    pub flop_card_1_id: Option<CardId>,
+    pub flop_card_2_id: Option<CardId>,
+    pub flop_card_3_id: Option<CardId>,
     pub turn_card_id: Option<CardId>,
     pub river_card_id: Option<CardId>,
     pub pot: Chips,
@@ -138,14 +138,8 @@ impl Game {
         mut tx: Tx<'a>,
         game_id: GameId,
     ) -> Result<Tx<'a>> {
-        sqlx::query!(
-            r#"
-                delete from hands where id in (select hand_id from players where game_id=$1)
-            "#,
-            game_id
-        )
-        .execute(&mut tx)
-        .await?;
+        // TODO(will): implement me
+        todo!();
     
         Ok(tx)
     }
@@ -278,9 +272,9 @@ impl Game {
                 )
                 update games
                     set
-                        flop_1_card_id = (select id from card_to_deck where deck_id = games.deck_id AND position = (select position from current_deck) + 1),
-                        flop_2_card_id = (select id from card_to_deck where deck_id = games.deck_id AND position = (select position from current_deck) + 2),
-                        flop_3_card_id = (select id from card_to_deck where deck_id = games.deck_id AND position = (select position from current_deck) + 3)
+                        flop_card_1_id = (select id from cards where deck_id = games.deck_id AND position = (select position from current_deck) + 1),
+                        flop_card_2_id = (select id from cards where deck_id = games.deck_id AND position = (select position from current_deck) + 2),
+                        flop_card_3_id = (select id from cards where deck_id = games.deck_id AND position = (select position from current_deck) + 3)
                 where
                     id = $1
             "#,
@@ -317,7 +311,7 @@ impl Game {
                 )
                 update games
                     set
-                        turn_card_id = (select id from card_to_deck where deck_id = games.deck_id AND position = (select position from current_deck) + 1)
+                        turn_card_id = (select id from cards where deck_id = games.deck_id AND position = (select position from current_deck) + 1)
                 where
                     id = $1
             "#,
@@ -386,7 +380,7 @@ impl Game {
                 )
                 update games
                     set
-                        river_card_id = (select id from card_to_deck where deck_id = games.deck_id AND position = (select position from current_deck) + 1)
+                        river_card_id = (select id from cards where deck_id = games.deck_id AND position = (select position from current_deck) + 1)
                 where
                     id = $1
             "#,
@@ -418,9 +412,9 @@ impl Game {
             r#"
                 update games
                 set
-                    flop_1_card_id = null, 
-                    flop_2_card_id = null, 
-                    flop_3_card_id = null, 
+                    flop_card_1_id = null, 
+                    flop_card_2_id = null, 
+                    flop_card_3_id = null, 
                     turn_card_id = null, 
                     river_card_id = null
                 where
@@ -567,7 +561,8 @@ pub struct GameSessionDto {
     pub game_id: GameId,
     pub stack: Option<Chips>,
     pub bet: Option<Chips>,
-    pub hand_id: Option<HandId>,
+    pub first_card_id: Option<CardId>,
+    pub second_card_id: Option<CardId>,
     pub seat_number: Option<SeatNumber>,
     pub status: String,
 }

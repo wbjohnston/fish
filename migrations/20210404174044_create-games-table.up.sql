@@ -8,27 +8,27 @@ CREATE TABLE games (
 	last_to_bet_seat_number int,
 	pot int NOT NULL DEFAULT 0,
 	phase TEXT NOT NULL default 'preflop',
-	flop_1_card_id uuid,
-	flop_2_card_id uuid,
-	flop_3_card_id uuid,
+	flop_card_1_id uuid,
+	flop_card_2_id uuid,
+	flop_card_3_id uuid,
 	turn_card_id uuid,
 	river_card_id uuid,
 	status varchar(16) NOT NULL DEFAULT 'created',
-	constraint fk_flop_1_card_id
-		foreign key (flop_1_card_id)
-			references card_to_deck(id),
-	constraint fk_flop_2_card_id
-		foreign key (flop_2_card_id)
-			references card_to_deck(id),
-	constraint fk_flop_3_card_id
-		foreign key (flop_3_card_id)
-			references card_to_deck(id),
+	constraint fk_flop_card_1_id
+		foreign key (flop_card_1_id)
+			references cards(id),
+	constraint fk_flop_card_2_id
+		foreign key (flop_card_2_id)
+			references cards(id),
+	constraint fk_flop_card_3_id
+		foreign key (flop_card_3_id)
+			references cards(id),
 	constraint fk_turn_card_id
 		foreign key (turn_card_id)
-			references card_to_deck(id),
+			references cards(id),
 	constraint fk_river_card_id
 		foreign key (river_card_id)
-			references card_to_deck(id),
+			references cards(id),
 	CONSTRAINT fk_deck_id
 		FOREIGN KEY (deck_id)
 			REFERENCES decks(id),

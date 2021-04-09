@@ -1,5 +1,5 @@
 -- Add up migration script here
-CREATE TABLE card_to_deck (
+CREATE TABLE cards (
 	id uuid DEFAULT uuid_generate_v4(),
 	deck_id uuid NOT NULL,
 	position int NOT NULL,
@@ -11,4 +11,4 @@ CREATE TABLE card_to_deck (
 	PRIMARY KEY(id)
 );
 
-CREATE UNIQUE INDEX card_to_deck_deck_id_position_idx ON card_to_deck (deck_id, position);
+CREATE UNIQUE INDEX cards_deck_id_position_idx ON cards (deck_id, position);
