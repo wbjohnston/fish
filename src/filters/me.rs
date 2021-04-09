@@ -1,16 +1,17 @@
 use crate::models::session::Session;
+use crate::prelude::*;
 
 use super::auth::authorization_token_filter;
 use warp::Filter;
 
 pub fn index(
-    context: crate::Context,
+    context: Context,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     fetch(context.clone()).or(ws(context.clone()))
 }
 
 pub fn fetch(
-    context: crate::Context,
+    context: Context,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::path!("me")
         .and(warp::get())
@@ -21,7 +22,7 @@ pub fn fetch(
 }
 
 pub fn ws(
-    context: crate::Context,
+    context: Context,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::path!("me" / "ws")
         .and(authorization_token_filter(context.clone()))

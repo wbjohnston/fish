@@ -1,3 +1,4 @@
+use crate::prelude::*;
 use warp::Filter;
 
 use crate::models::game::GameId;
@@ -5,7 +6,7 @@ use crate::models::game::GameId;
 use super::auth::authorization_token_filter;
 
 pub fn index(
-    context: crate::Context,
+    context: Context,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     list(context.clone())
         .or(fetch(context.clone()))
@@ -22,7 +23,7 @@ fn list(
         .and_then(move || crate::handlers::game::list(context.db.clone()))
 }
 fn fetch(
-    context: crate::Context,
+    context: Context,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::path!("game" / GameId)
         .and(warp::get())
@@ -31,7 +32,7 @@ fn fetch(
 
 /// POST /game
 fn create(
-    context: crate::Context,
+    context: Context,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::path!("game")
         .and(warp::post())

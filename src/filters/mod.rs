@@ -3,10 +3,12 @@ pub mod game;
 pub mod me;
 pub mod user;
 
+use crate::prelude::*;
+
 use warp::Filter;
 
 pub fn index(
-    context: crate::Context,
+    context: Context,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     let index = warp::path::end().map(|| warp::reply::html("not found"));
 

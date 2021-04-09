@@ -22,7 +22,7 @@ pub async fn authorize(
     db: Db,
     header: Option<SessionId>,
     cookie: Option<SessionId>,
-) -> Result<Session, Rejection> {
+) -> WebResult<Session> {
     let session_id = match (header, cookie) {
         (Some(x), _) => x,
         (_, Some(x)) => x,
@@ -40,7 +40,7 @@ pub async fn authorize(
     Ok(session)
 }
 
-pub async fn login(db: Db, req: LoginRequest) -> Result<impl warp::Reply, Infallible> {
+pub async fn login(db: Db, req: LoginRequest) -> WebResult<impl warp::Reply> {
     let user = sqlx::query_as!(
         User,
         "SELECT * FROM users WHERE username = $1",
@@ -83,7 +83,7 @@ pub async fn login(db: Db, req: LoginRequest) -> Result<impl warp::Reply, Infall
     Ok(response)
 }
 
-pub async fn logout(db: Db, session: Session) -> Result<impl warp::Reply, Infallible> {
+pub async fn logout(db: Db, session: Session) -> WebResult<impl warp::Reply> {
     let _ = sqlx::query_as!(
         Session,
         "DELETE FROM sessions WHERE id = $1 RETURNING *",

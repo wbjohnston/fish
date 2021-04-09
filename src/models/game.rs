@@ -43,7 +43,7 @@ pub struct GameSession {
     pub status: String,
 }
 
-pub async fn list_games(db: Db) -> Result<Vec<Game>, Box<dyn std::error::Error>> {
+pub async fn list_games(db: Db) -> Result<Vec<Game>> {
     sqlx::query_as!(Game, "SELECT * FROM games")
         .fetch_all(&db)
         .await
@@ -51,7 +51,7 @@ pub async fn list_games(db: Db) -> Result<Vec<Game>, Box<dyn std::error::Error>>
         .unwrap()
 }
 
-pub async fn fetch_game(db: Db, id: GameId) -> Result<Game, Box<dyn std::error::Error>> {
+pub async fn fetch_game(db: Db, id: GameId) -> Result<Game> {
     sqlx::query_as!(Game, "SELECT * FROM games WHERE id = $1", id)
         .fetch_one(&db)
         .await
@@ -63,7 +63,7 @@ pub async fn create_game(
     db: Db,
     name: String,
     owner_id: UserId,
-) -> Result<Game, Box<dyn std::error::Error>> {
+) -> Result<Game> {
     let tx = db.begin().await.unwrap();
     let (mut tx, deck_id) = create_deck_transaction(tx).await.unwrap();
 
@@ -87,7 +87,7 @@ pub async fn stand_player(
     db: Db,
     game_id: GameId,
     user_id: UserId,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<()> {
     sqlx::query!(
         r#"
         update players
@@ -111,7 +111,7 @@ pub async fn sit_player_at_first_available_seat(
     db: Db,
     game_id: GameId,
     user_id: UserId,
-) -> Result<SeatNumber, Box<dyn std::error::Error>> {
+) -> Result<SeatNumber> {
     let seat = sqlx::query_scalar!(
         r#"
             update players
@@ -143,7 +143,7 @@ pub async fn sit_player_at_seat(
     game_id: GameId,
     user_id: UserId,
     seat_number: SeatNumber,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<()> {
     sqlx::query!(
         r#"
         update players
@@ -164,7 +164,7 @@ pub async fn sit_player_at_seat(
     Ok(())
 }
 
-pub async fn deal_flop(db: Db, game_id: GameId) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn deal_flop(db: Db, game_id: GameId) -> Result<()> {
     let mut tx = db.begin().await.unwrap();
 
     sqlx::query!(
@@ -201,7 +201,7 @@ pub async fn deal_flop(db: Db, game_id: GameId) -> Result<(), Box<dyn std::error
     Ok(())
 }
 
-pub async fn deal_turn(db: Db, game_id: GameId) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn deal_turn(db: Db, game_id: GameId) -> Result<()> {
     let mut tx = db.begin().await.unwrap();
 
     debug!("IN HERE");
@@ -238,7 +238,7 @@ pub async fn deal_turn(db: Db, game_id: GameId) -> Result<(), Box<dyn std::error
     Ok(())
 }
 
-pub async fn deal_river(db: Db, game_id: GameId) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn deal_river(db: Db, game_id: GameId) -> Result<()> {
     let mut tx = db.begin().await.unwrap();
 
     debug!("IN HERE");
@@ -278,7 +278,7 @@ pub async fn fold_player(
     db: Db,
     game_id: GameId,
     user_id: UserId,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<()> {
     todo!()
 }
 
@@ -287,14 +287,14 @@ pub async fn bet_player(
     game_id: GameId,
     user_id: UserId,
     amount: Chips,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<()> {
     todo!()
 }
 
 pub async fn deal_cards_to_players(
     db: Db,
     game_id: GameId,
-) -> Result<Vec<(UserId, Vec<Card>)>, Box<dyn std::error::Error>> {
+) -> Result<Vec<(UserId, Vec<Card>)>> {
     // sqlx::query!(
     //     r#"
     //         with current_players as (
@@ -324,9 +324,9 @@ pub async fn deal_cards_to_players(
 }
 
 pub async fn remove_community_cards<'a>(
-    mut tx: sqlx::Transaction<'a, sqlx::Postgres>,
+    mut tx: Tx<'a>,
     game_id: GameId,
-) -> Result<sqlx::Transaction<'a, sqlx::Postgres>, Box<dyn std::error::Error>> {
+) -> Result<Tx<'a>> {
     sqlx::query!(
         r#"
             update games
@@ -347,9 +347,9 @@ pub async fn remove_community_cards<'a>(
 }
 
 pub async fn shuffle_game_deck_transaction<'a>(
-    mut tx: sqlx::Transaction<'a, sqlx::Postgres>,
+    mut tx: Tx<'a>,
     game_id: GameId,
-) -> Result<sqlx::Transaction<'a, sqlx::Postgres>, Box<dyn std::error::Error>> {
+) -> Result<Tx<'a>> {
     let deck_id = sqlx::query_scalar!("select deck_id from games where id = $1", game_id)
         .fetch_one(&mut tx)
         .await?;
@@ -360,9 +360,9 @@ pub async fn shuffle_game_deck_transaction<'a>(
 }
 
 pub async fn remove_player_cards<'a>(
-    mut tx: sqlx::Transaction<'a, sqlx::Postgres>,
+    mut tx: Tx<'a>,
     game_id: GameId,
-) -> Result<sqlx::Transaction<'a, sqlx::Postgres>, Box<dyn std::error::Error>> {
+) -> Result<Tx<'a>> {
     sqlx::query!(
         r#"
             delete from hands where id in (select hand_id from players where game_id=$1)
@@ -376,16 +376,16 @@ pub async fn remove_player_cards<'a>(
 }
 
 pub async fn distribute_winnings<'a>(
-    mut tx: sqlx::Transaction<'a, sqlx::Postgres>,
+    mut tx: Tx<'a>,
     game_id: GameId,
-) -> Result<sqlx::Transaction<'a, sqlx::Postgres>, Box<dyn std::error::Error>> {
+) -> Result<Tx<'a>> {
     todo!()
 }
 
 pub async fn round_is_over(
     db: Db,
     game_id: GameId,
-) -> Result<bool, Box<dyn std::error::Error>> {
+) -> Result<bool> {
     todo!()
 }
 
@@ -393,7 +393,7 @@ pub async fn player_is_active_player(
     db: Db,
     game_id: GameId,
     user_id: UserId,
-) -> Result<bool, Box<dyn std::error::Error>> {
+) -> Result<bool> {
     let maybe_active_player = sqlx::query_as!(
         GameSession, 
         r#"
@@ -413,25 +413,25 @@ pub async fn player_is_last_to_act(
     db: Db,
     game_id: GameId,
     user_id: UserId,
-) -> Result<bool, Box<dyn std::error::Error>> {
+) -> Result<bool> {
     todo!()
 }
 
 pub async fn advance_button<'a>(
-    tx: sqlx::Transaction<'a, sqlx::Postgres>,
+    tx: Tx<'a>,
     game_id: GameId,
-) -> Result<sqlx::Transaction<'a, sqlx::Postgres>, Box<dyn std::error::Error>> {
+) -> Result<Tx<'a>> {
     todo!()
 }
 
 pub async fn game_can_continue<'a>(
     db: Db,
     game_id: GameId,
-) -> Result<bool, Box<dyn std::error::Error>> {
+) -> Result<bool> {
     todo!()
 }
 
-pub async fn end_round(db: Db, game_id: GameId) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn end_round(db: Db, game_id: GameId) -> Result<()> {
     /*
     1. delete community cards
     2. delete player cards
@@ -480,7 +480,7 @@ pub struct Player {
 pub async fn get_table(
     _db: Db,
     _game_id: GameId,
-) -> Result<Table, Box<dyn std::error::Error>> {
+) -> Result<Table> {
     todo!()
 }
 
@@ -488,7 +488,7 @@ pub async fn join_game(
     db: Db,
     game_id: GameId,
     user_id: UserId,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<()> {
     sqlx::query!(
         r#"
             INSERT INTO players (
@@ -516,7 +516,7 @@ pub async fn leave_game(
     db: Db,
     game_id: GameId,
     user_id: UserId,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<()> {
     sqlx::query!(
         r#"
             DELETE FROM players WHERE user_id = $1 AND game_id = $2

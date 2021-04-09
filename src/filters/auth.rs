@@ -1,3 +1,4 @@
+use crate::prelude::*;
 use warp::Filter;
 
 use crate::{
@@ -6,7 +7,7 @@ use crate::{
 };
 
 pub fn authorization_token_filter(
-    context: crate::Context,
+    context: Context,
 ) -> impl Filter<Extract = (Session,), Error = warp::Rejection> + Clone {
     warp::any()
         .and(warp::header::optional("Authorization"))
@@ -19,7 +20,7 @@ pub fn authorization_token_filter(
 }
 
 pub fn index(
-    context: crate::Context,
+    context: Context,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     login(context.clone())
         .or(register(context.clone()))
@@ -27,7 +28,7 @@ pub fn index(
 }
 
 pub fn login(
-    context: crate::Context,
+    context: Context,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::path!("auth" / "login")
         .and(warp::post())
@@ -38,7 +39,7 @@ pub fn login(
 }
 
 pub fn register(
-    context: crate::Context,
+    context: Context,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     // post user
     warp::path!("auth" / "register")
@@ -50,7 +51,7 @@ pub fn register(
 }
 
 pub fn logout(
-    context: crate::Context,
+    context: Context,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::path!("auth" / "logout")
         .and(warp::get())

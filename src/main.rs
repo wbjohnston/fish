@@ -1,5 +1,5 @@
 use crossbeam_channel::bounded as channel;
-use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
+use sqlx::postgres::PgPoolOptions;
 use std::net::SocketAddr;
 use tracing::*;
 use warp::Filter;
@@ -16,7 +16,7 @@ const PORT: u16 = 8080;
 use prelude::*;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> Result<()> {
     tracing_subscriber::fmt::init();
 
     let config = config::Config::from_env()?;

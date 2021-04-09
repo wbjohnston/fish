@@ -26,10 +26,7 @@ fn generate_deck<'a>() -> impl Iterator<Item = (i32, &'a str, &'a str)> {
         .map(|(position, (&suit, &value))| (position, suit, value))
 }
 
-pub async fn shuffle_deck_transaction<'a>(
-    mut tx: sqlx::Transaction<'a, sqlx::Postgres>,
-    deck_id: DeckId,
-) -> Result<sqlx::Transaction<'a, sqlx::Postgres>, Box<dyn std::error::Error>> {
+pub async fn shuffle_deck_transaction<'a>(mut tx: Tx<'a>, deck_id: DeckId) -> Result<Tx<'a>> {
     sqlx::query!("DELETE FROM card_to_deck WHERE deck_id = $1", deck_id)
         .execute(&mut tx)
         .await
@@ -56,7 +53,7 @@ pub async fn shuffle_deck_transaction<'a>(
     Ok(tx)
 }
 
-pub async fn shuffle_deck<'a>(db: Db, deck_id: DeckId) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn shuffle_deck<'a>(db: Db, deck_id: DeckId) -> Result<()> {
     let tx = db.begin().await.unwrap();
     let tx = shuffle_deck_transaction(tx, deck_id).await?;
     tx.commit().await.unwrap();
@@ -64,25 +61,25 @@ pub async fn shuffle_deck<'a>(db: Db, deck_id: DeckId) -> Result<(), Box<dyn std
     Ok(())
 }
 
-pub async fn _deal_flop(db: Db, deck_id: DeckId) -> Result<Vec<Card>, Box<dyn std::error::Error>> {
+pub async fn _deal_flop(db: Db, deck_id: DeckId) -> Result<Vec<Card>> {
     // draw an extra card to burn it
     let cards = draw_n(db, deck_id, 4).await?;
 
     Ok(cards)
 }
 
-pub async fn _deal_turn(db: Db, deck_id: DeckId) -> Result<Card, Box<dyn std::error::Error>> {
+pub async fn _deal_turn(db: Db, deck_id: DeckId) -> Result<Card> {
     // draw an extra card to burn it
     let card = draw_n(db, deck_id, 2).await?;
 
     Ok(card[0].clone())
 }
 
-pub async fn _deal_river(db: Db, deck_id: DeckId) -> Result<Card, Box<dyn std::error::Error>> {
+pub async fn _deal_river(db: Db, deck_id: DeckId) -> Result<Card> {
     _deal_turn(db, deck_id).await
 }
 
-pub async fn _create_deck(db: Db) -> Result<DeckId, Box<dyn std::error::Error>> {
+pub async fn _create_deck(db: Db) -> Result<DeckId> {
     let tx = db.begin().await.unwrap();
 
     let (tx, deck_id) = create_deck_transaction(tx).await?;
@@ -92,9 +89,7 @@ pub async fn _create_deck(db: Db) -> Result<DeckId, Box<dyn std::error::Error>> 
     Ok(deck_id)
 }
 
-pub async fn create_deck_transaction<'a>(
-    mut tx: sqlx::Transaction<'a, sqlx::Postgres>,
-) -> Result<(sqlx::Transaction<'a, sqlx::Postgres>, DeckId), Box<dyn std::error::Error>> {
+pub async fn create_deck_transaction<'a>(mut tx: Tx<'a>) -> Result<(Tx<'a>, DeckId)> {
     let deck = sqlx::query_as!(Deck, r#"INSERT INTO decks DEFAULT VALUES RETURNING * "#)
         .fetch_one(&mut tx)
         .await
@@ -118,7 +113,7 @@ pub async fn create_deck_transaction<'a>(
     Ok((tx, deck.id))
 }
 
-pub async fn draw_next(db: Db, deck_id: DeckId) -> Result<Card, Box<dyn std::error::Error>> {
+pub async fn draw_next(db: Db, deck_id: DeckId) -> Result<Card> {
     let mut tx = db.begin().await.unwrap();
 
     let card = sqlx::query_as!(
@@ -153,11 +148,7 @@ pub async fn draw_next(db: Db, deck_id: DeckId) -> Result<Card, Box<dyn std::err
     Ok(card)
 }
 
-pub async fn draw_n(
-    db: Db,
-    deck_id: DeckId,
-    n: i32,
-) -> Result<Vec<Card>, Box<dyn std::error::Error>> {
+pub async fn draw_n(db: Db, deck_id: DeckId, n: i32) -> Result<Vec<Card>> {
     let mut tx = db.begin().await.unwrap();
 
     let cards = sqlx::query_as!(

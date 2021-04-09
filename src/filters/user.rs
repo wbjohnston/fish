@@ -1,8 +1,9 @@
+use crate::prelude::*;
 use uuid::Uuid;
 use warp::Filter;
 
 pub fn index(
-    context: crate::Context,
+    context: Context,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     list(context.clone())
         .or(create(context.clone()))
@@ -10,7 +11,7 @@ pub fn index(
 }
 
 fn list(
-    context: crate::Context,
+    context: Context,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::path!("user")
         .and(warp::get())
@@ -18,7 +19,7 @@ fn list(
 }
 
 fn create(
-    context: crate::Context,
+    context: Context,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::path!("user")
         .and(warp::post())
@@ -29,7 +30,7 @@ fn create(
 }
 
 fn fetch(
-    context: crate::Context,
+    context: Context,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::path!("user" / Uuid)
         .and(warp::get())

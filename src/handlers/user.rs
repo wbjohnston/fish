@@ -1,7 +1,6 @@
 use crate::prelude::*;
 use futures::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
-use std::convert::Infallible;
 
 use tracing::*;
 use uuid::Uuid;
@@ -29,7 +28,7 @@ use crate::{
     services::auth::hash_password,
 };
 
-pub async fn list(db: Db) -> Result<impl warp::Reply, Infallible> {
+pub async fn list(db: Db) -> WebResult<impl warp::Reply> {
     let users = sqlx::query_as!(User, "SELECT * FROM users")
         .fetch_all(&db)
         .await
@@ -40,10 +39,7 @@ pub async fn list(db: Db) -> Result<impl warp::Reply, Infallible> {
     Ok(warp::reply::json(&sanitized))
 }
 
-pub async fn create(
-    db: Db,
-    new_user: crate::models::user::NewUser,
-) -> Result<impl Reply, Infallible> {
+pub async fn create(db: Db, new_user: crate::models::user::NewUser) -> WebResult<impl Reply> {
     let hash = hash_password(new_user.password.as_bytes());
 
     let user: User = sqlx::query_as!(
@@ -61,7 +57,7 @@ pub async fn create(
     Ok(warp::reply::json(&sanitized))
 }
 
-pub async fn fetch(db: Db, id: Uuid) -> Result<impl warp::Reply, Infallible> {
+pub async fn fetch(db: Db, id: Uuid) -> WebResult<impl warp::Reply> {
     let user = sqlx::query_as!(User, "SELECT * FROM users WHERE id = $1 LIMIT 1", id)
         .fetch_one(&db)
         .await
@@ -77,7 +73,7 @@ pub async fn ws(
     session: Session,
     _id: UserId,
     ws: warp::ws::Ws,
-) -> Result<impl warp::Reply, Infallible> {
+) -> WebResult<impl warp::Reply> {
     // TODO(will): kill connection if a session is killed
     Ok(ws.on_upgrade(move |socket| async {
         let (mut sink, mut stream) = socket.split();
