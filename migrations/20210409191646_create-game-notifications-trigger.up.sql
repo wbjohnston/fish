@@ -27,7 +27,7 @@ create constraint trigger game_notify
 		insert
 		or update
 		or delete
-	on games not deferrable
+	on games
 	for each row
 		execute procedure game_notify();
 

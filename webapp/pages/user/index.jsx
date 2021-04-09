@@ -5,9 +5,13 @@ import { Table } from 'antd';
 import { listUsers } from '../../lib/api';
 import Layout from '../../components/AuthedLayout';
 
-export default function ListUserPage({ initialUsers }) {
+export default function ListUserPage() {
   const router = useRouter();
-  const [users, setUsers] = useState(initialUsers);
+  const [users, setUsers] = useState([]);
+
+  useEffect(() => {
+    listUsers().then((x) => setUsers(x));
+  }, []);
 
   function onRow(row) {
     return {
@@ -31,11 +35,4 @@ export default function ListUserPage({ initialUsers }) {
       <Table onRow={onRow} dataSource={users} columns={columns} />
     </Layout>
   );
-}
-
-export async function getServerSideProps() {
-  const initialUsers = await listUsers();
-  return {
-    props: { initialUsers },
-  };
 }

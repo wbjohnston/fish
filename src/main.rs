@@ -1,3 +1,4 @@
+use models::notification::Notification;
 use sqlx::postgres::PgPoolOptions;
 use std::net::SocketAddr;
 use tokio::sync::watch as channel;
@@ -22,11 +23,22 @@ async fn main() -> Result<()> {
     let config = config::Config::from_env()?;
 
     let db = PgPoolOptions::new()
-        .max_connections(5)
+        .max_connections(3)
         .connect(config.database_url.as_str())
         .await?;
 
-    let context = context::Context { db };
+    let mut listener = sqlx::postgres::PgListener::connect_with(&db).await.unwrap();
+    listener.listen("game_notifications").await.unwrap();
+
+    let (tx, _) = tokio::sync::broadcast::channel(128);
+    let context = context::Context { db, tx: tx.clone() };
+
+    tokio::spawn(async move {
+        while let Ok(msg) = listener.recv().await {
+            let notif: Notification = serde_json::from_str(msg.payload()).unwrap();
+            tx.send(notif).unwrap();
+        }
+    });
 
     info!("connected to database");
 

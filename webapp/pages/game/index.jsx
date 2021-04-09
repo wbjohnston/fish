@@ -3,14 +3,18 @@ import {
   Form,
 } from 'antd';
 import { useRouter } from 'next/router';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createGame, listGames } from '../../lib/api';
 
 import Layout from '../../components/AuthedLayout';
 
-export default function ListGamePage({ initialGames }) {
+export default function ListGamePage() {
   const router = useRouter();
-  const [games, setGames] = useState(initialGames);
+  const [games, setGames] = useState([]);
+
+  useEffect(() => {
+    listGames().then((x) => setGames(x));
+  }, []);
 
   function handleNewGameSubmit({ name }) {
     createGame({ name })
@@ -60,14 +64,4 @@ export default function ListGamePage({ initialGames }) {
       <Table onRow={onRow} dataSource={games} columns={columns} />
     </Layout>
   );
-}
-
-export async function getServerSideProps() {
-  const initialGames = await listGames();
-
-  return {
-    props: {
-      initialGames,
-    },
-  };
 }

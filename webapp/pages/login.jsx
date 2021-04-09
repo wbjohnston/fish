@@ -28,17 +28,12 @@ export default function LoginPage() {
     }
   }, [router.isReady]);
 
-  const onFinishFailed = (errorInfo) => {
-    console.log('Failed:', errorInfo);
-  };
-
   return (
     <Layout>
       <h1>Login</h1>
       <Form
         name="basic"
         onFinish={handleLoginSubmit}
-        onFinishFailed={onFinishFailed}
       >
         <Form.Item
           label="Username"

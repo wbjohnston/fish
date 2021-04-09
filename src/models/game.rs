@@ -258,7 +258,8 @@ impl Game {
         game_id: GameId,
         user_id: UserId,
     ) -> Result<()> {
-        todo!()
+        sqlx::query!("UPDATE players set status = 'folded' where game_id = $1 and user_id = $2", game_id, user_id).execute(&db).await.unwrap();
+        Ok(())
     }
 
 

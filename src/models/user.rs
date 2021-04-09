@@ -26,6 +26,7 @@ pub struct NewUser {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SanitizedUser {
     pub id: UserId,
+    pub role: Role,
     pub username: String,
 }
 
@@ -33,12 +34,14 @@ impl From<User> for SanitizedUser {
     fn from(user: User) -> Self {
         Self {
             id: user.id,
+            role: parse_role(user.role.as_str()).unwrap(),
             username: user.username,
         }
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum Role {
     User,
     Admin,

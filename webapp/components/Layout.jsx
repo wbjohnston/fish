@@ -11,7 +11,7 @@ function NavMenu({ activeNavKey }) {
 
   if (!user) {
     return (
-      <Menu style={{ float: 'right' }} theme="dark" mode="horizontal">
+      <Menu style={{ float: 'right', background: 'inherit' }} theme="dark" mode="horizontal">
         <Menu.Item key="login">
           <Link href="/login">
             <a>Login</a>
@@ -28,7 +28,7 @@ function NavMenu({ activeNavKey }) {
 
   return (
     <>
-      <Menu style={{ float: 'left' }} activeKey={activeNavKey} theme="dark" mode="horizontal">
+      <Menu style={{ float: 'left', background: 'inherit' }} activeKey={activeNavKey} theme="dark" mode="horizontal">
         <Menu.Item key="users">
           <Link href="/user" passHref>
             <a>Users</a>
@@ -40,7 +40,7 @@ function NavMenu({ activeNavKey }) {
           </Link>
         </Menu.Item>
       </Menu>
-      <Menu theme="dark" mode="horizontal" style={{ float: 'right' }}>
+      <Menu theme="dark" mode="horizontal" style={{ float: 'right', background: 'inherit' }}>
         <SubMenu key="user" title={user.username} icon={<UserOutlined />}>
           <Menu.Item key="profile">
             <Link href="/me" passHref>
@@ -60,6 +60,7 @@ function NavMenu({ activeNavKey }) {
 
 export default function Layout({ children, activeNavKey, title }) {
   const { websocket } = useWebsocket();
+  const { user } = useAuth();
   useEffect(() => {
     if (!websocket) {
       return;
@@ -78,7 +79,7 @@ export default function Layout({ children, activeNavKey, title }) {
   }, [websocket]);
   return (
     <ALayout style={{ minHeight: '100vh' }} className="layout" title={title}>
-      <ALayout.Header>
+      <ALayout.Header style={{ background: user?.role === 'admin' ? '#27ae60' : '#2980b9' }}>
         <NavMenu activeNavKey={activeNavKey} />
       </ALayout.Header>
       <ALayout.Content style={{ padding: '4rem' }}>

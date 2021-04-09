@@ -27,7 +27,7 @@ create constraint trigger player_notify
 		insert
 		or update
 		or delete
-	on players not DEFERRABLE
+	on players
 	for each row
 		execute procedure game_notify_on_player_change();
 

@@ -71,12 +71,10 @@ pub async fn ws(
         let (mut sink, mut stream) = socket.split();
         let (tx, mut rx) = tokio::sync::mpsc::channel(32);
 
-        let mut listener = sqlx::postgres::PgListener::connect_with(&context.db).await.unwrap();
-        listener.listen("game_notifications").await.unwrap();
+        let mut notification_rx = context.tx.subscribe();
 
         let rx_handle = tokio::spawn(async move {
             loop {
-
                 tokio::select! {
                     Some(Ok(x)) = stream.next() => {
                         if let Some(_) = x.close_frame() {
@@ -175,8 +173,7 @@ pub async fn ws(
 
                         tx.send(response).await.expect("failed to send to sender");
                     }
-                    Ok(msg) = listener.recv() => {
-                        let notif: Notification = serde_json::from_str(msg.payload()).unwrap();
+                    Ok(notif) = notification_rx.recv() => {
 
                         tx.send(Event::Update {
                             game_id: notif.game_id
@@ -188,7 +185,6 @@ pub async fn ws(
 
         let tx_handle = tokio::spawn(async move {
             while let Some(event) = rx.recv().await {
-                dbg!(&event);
                 sink.send(WsMessage::text(serde_json::to_string(&event).unwrap()))
                     .await
                     .unwrap();
