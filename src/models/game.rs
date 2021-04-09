@@ -21,6 +21,7 @@ pub struct Game {
     pub deck_id: DeckId,
     pub button_seat_number: SeatNumber,
     pub active_seat_number: SeatNumber,
+    pub last_to_bet_seat_number: Option<SeatNumber>,
     pub flop_1_card_id: Option<CardId>,
     pub flop_2_card_id: Option<CardId>,
     pub flop_3_card_id: Option<CardId>,
@@ -34,9 +35,10 @@ pub struct Game {
 pub struct GameSession {
     pub user_id: UserId,
     pub game_id: GameId,
-    pub stack: Chips,
-    pub hand_id: HandId,
-    pub seat_number: SeatNumber,
+    pub stack: Option<Chips>,
+    pub bet: Option<Chips>,
+    pub hand_id: Option<HandId>,
+    pub seat_number: Option<SeatNumber>,
     pub status: String,
 }
 
@@ -388,6 +390,26 @@ pub async fn round_is_over(
     todo!()
 }
 
+pub async fn player_is_active_player(
+    db: crate::Db,
+    game_id: GameId,
+    user_id: UserId,
+) -> Result<bool, Box<dyn std::error::Error>> {
+    let maybe_active_player = sqlx::query_as!(
+        GameSession, 
+        r#"
+            select * from players where game_id = $1 AND user_id = $2 and seat_number = (select active_seat_number from games where id = $1)
+        "#,
+        game_id,
+        user_id
+    ).fetch_optional(&db).await?;
+
+    match maybe_active_player {
+        Some(player) if player.user_id == user_id => Ok(true),
+        _ => Ok(false)
+    }
+}
+
 pub async fn player_is_last_to_act(
     db: crate::Db,
     game_id: GameId,
@@ -403,7 +425,7 @@ pub async fn advance_button<'a>(
     todo!()
 }
 
-pub async fn game_is_over<'a>(
+pub async fn game_can_continue<'a>(
     db: crate::Db,
     game_id: GameId,
 ) -> Result<bool, Box<dyn std::error::Error>> {
@@ -429,11 +451,11 @@ pub async fn end_round(db: crate::Db, game_id: GameId) -> Result<(), Box<dyn std
 
     tx.commit().await.unwrap();
 
-    if game_is_over(db, game_id).await? {
+    if game_can_continue(db, game_id).await? {
+        todo!()
+    } else {
         todo!()
     }
-
-    todo!()
 }
 
 #[derive(Debug, Serialize, Deserialize)]

@@ -2,11 +2,31 @@ use futures::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
 
-
+use tracing::*;
 use uuid::Uuid;
 use warp::{ws::Message as WsMessage, Reply};
 
-use crate::{models::game::join_game, models::game::leave_game, models::game::sit_player_at_first_available_seat, models::game::sit_player_at_seat, models::game::stand_player, models::{game::Table, game::bet_player, game::deal_flop, game::deal_turn, game::fold_player, game::get_table, game::{Chips, GameId, SeatNumber}, session::Session, game::deal_river, user::{SanitizedUser, User, UserId}}, services::auth::hash_password};
+use crate::{
+    models::game::join_game,
+    models::game::leave_game,
+    models::game::player_is_active_player,
+    models::game::sit_player_at_first_available_seat,
+    models::game::sit_player_at_seat,
+    models::game::stand_player,
+    models::{
+        game::bet_player,
+        game::deal_flop,
+        game::deal_river,
+        game::deal_turn,
+        game::fold_player,
+        game::get_table,
+        game::Table,
+        game::{Chips, GameId, SeatNumber},
+        session::Session,
+        user::{SanitizedUser, User, UserId},
+    },
+    services::auth::hash_password,
+};
 
 pub async fn list(db: crate::Db) -> Result<impl warp::Reply, Infallible> {
     let users = sqlx::query_as!(User, "SELECT * FROM users")
@@ -75,7 +95,15 @@ pub async fn ws(
                             .await
                             .unwrap();
                     }
-                    Action::Bet { amount } => {
+                    Action::Bet { amount }
+                        if player_is_active_player(
+                            db.clone(),
+                            message.game_id,
+                            session.owner_id,
+                        )
+                        .await
+                        .unwrap() =>
+                    {
                         bet_player(db.clone(), message.game_id, session.owner_id, amount)
                             .await
                             .unwrap();
@@ -85,7 +113,15 @@ pub async fn ws(
                             .await
                             .unwrap();
                     }
-                    Action::Fold => {
+                    Action::Fold
+                        if player_is_active_player(
+                            db.clone(),
+                            message.game_id,
+                            session.owner_id,
+                        )
+                        .await
+                        .unwrap() =>
+                    {
                         fold_player(db.clone(), message.game_id, session.owner_id)
                             .await
                             .unwrap();
@@ -123,6 +159,10 @@ pub async fn ws(
                         .await
                         .unwrap();
                     }
+                    x => {
+                        error!("{:?}", x);
+                        continue;
+                    }
                 }
 
                 let response = Event::Acknowledge { message };
@@ -151,6 +191,7 @@ pub struct Message {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(tag = "kind", content = "payload")]
 #[serde(rename_all = "camelCase")]
 pub enum Event {
     /// A new game was created
