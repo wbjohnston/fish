@@ -1,6 +1,6 @@
-use crossbeam_channel::bounded as channel;
 use sqlx::postgres::PgPoolOptions;
 use std::net::SocketAddr;
+use tokio::sync::watch as channel;
 use tracing::*;
 use warp::Filter;
 
@@ -26,22 +26,7 @@ async fn main() -> Result<()> {
         .connect(config.database_url.as_str())
         .await?;
 
-    let mut listener = sqlx::postgres::PgListener::connect_with(&db).await?;
-
-    let (tx, rx) = channel(256);
-
-    let context = context::Context {
-        db,
-        table_notifcations_rx: rx,
-    };
-
-    tokio::spawn(async move {
-        listener.listen("table_notifications").await.unwrap();
-
-        while let Ok(msg) = listener.recv().await {
-            tx.send(msg).unwrap();
-        }
-    });
+    let context = context::Context { db };
 
     info!("connected to database");
 

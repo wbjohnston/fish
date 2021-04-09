@@ -7,6 +7,7 @@ CREATE TABLE games (
 	active_seat_number int NOT NULL DEFAULT 0,
 	last_to_bet_seat_number int,
 	pot int NOT NULL DEFAULT 0,
+	phase TEXT NOT NULL default 'preflop',
 	flop_1_card_id uuid,
 	flop_2_card_id uuid,
 	flop_3_card_id uuid,

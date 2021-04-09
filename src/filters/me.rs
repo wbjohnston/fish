@@ -29,6 +29,6 @@ pub fn ws(
         .and(warp::ws())
         .and_then(move |session: Session, ws: warp::ws::Ws| {
             let id = session.owner_id.clone();
-            crate::handlers::user::ws(context.db.clone(), session, id, ws)
+            crate::handlers::user::ws(context.clone(), session, id, ws)
         })
 }

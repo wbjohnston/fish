@@ -3,8 +3,6 @@ use crate::models::user::User;
 use crate::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::convert::Infallible;
-use warp::Rejection;
 
 #[derive(Debug)]
 pub enum AuthError {

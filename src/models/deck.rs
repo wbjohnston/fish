@@ -6,7 +6,6 @@ pub struct Deck {
     pub id: DeckId,
     pub position: i32,
 }
-use crate::models::card::Card;
 use crate::models::card::{SUITS, VALUES};
 use rand::seq::SliceRandom;
 
@@ -53,42 +52,6 @@ pub async fn shuffle_deck_transaction<'a>(mut tx: Tx<'a>, deck_id: DeckId) -> Re
     Ok(tx)
 }
 
-pub async fn shuffle_deck<'a>(db: Db, deck_id: DeckId) -> Result<()> {
-    let tx = db.begin().await.unwrap();
-    let tx = shuffle_deck_transaction(tx, deck_id).await?;
-    tx.commit().await.unwrap();
-
-    Ok(())
-}
-
-pub async fn _deal_flop(db: Db, deck_id: DeckId) -> Result<Vec<Card>> {
-    // draw an extra card to burn it
-    let cards = draw_n(db, deck_id, 4).await?;
-
-    Ok(cards)
-}
-
-pub async fn _deal_turn(db: Db, deck_id: DeckId) -> Result<Card> {
-    // draw an extra card to burn it
-    let card = draw_n(db, deck_id, 2).await?;
-
-    Ok(card[0].clone())
-}
-
-pub async fn _deal_river(db: Db, deck_id: DeckId) -> Result<Card> {
-    _deal_turn(db, deck_id).await
-}
-
-pub async fn _create_deck(db: Db) -> Result<DeckId> {
-    let tx = db.begin().await.unwrap();
-
-    let (tx, deck_id) = create_deck_transaction(tx).await?;
-
-    tx.commit().await.unwrap();
-
-    Ok(deck_id)
-}
-
 pub async fn create_deck_transaction<'a>(mut tx: Tx<'a>) -> Result<(Tx<'a>, DeckId)> {
     let deck = sqlx::query_as!(Deck, r#"INSERT INTO decks DEFAULT VALUES RETURNING * "#)
         .fetch_one(&mut tx)
@@ -111,81 +74,4 @@ pub async fn create_deck_transaction<'a>(mut tx: Tx<'a>) -> Result<(Tx<'a>, Deck
     }
 
     Ok((tx, deck.id))
-}
-
-pub async fn draw_next(db: Db, deck_id: DeckId) -> Result<Card> {
-    let mut tx = db.begin().await.unwrap();
-
-    let card = sqlx::query_as!(
-        Card,
-        r#"
-        SELECT
-            value, suit
-        FROM card_to_deck
-        WHERE deck_id = $1 AND position = (SELECT (position) FROM decks WHERE id = $1)
-        "#,
-        deck_id
-    )
-    .fetch_one(&mut tx)
-    .await
-    .unwrap();
-
-    sqlx::query!(
-        r#"
-        UPDATE decks
-            SET position = position + 1
-        WHERE
-            id = $1
-    "#,
-        deck_id
-    )
-    .execute(&mut tx)
-    .await
-    .unwrap();
-
-    tx.commit().await.unwrap();
-
-    Ok(card)
-}
-
-pub async fn draw_n(db: Db, deck_id: DeckId, n: i32) -> Result<Vec<Card>> {
-    let mut tx = db.begin().await.unwrap();
-
-    let cards = sqlx::query_as!(
-        Card,
-        r#"
-        SELECT
-            value, suit
-        FROM card_to_deck
-        WHERE
-            deck_id = $1
-            AND position >= (SELECT position from decks WHERE id = $1)
-            AND position < (SELECT position from decks WHERE id = $1) + $2
-        ORDER by position
-
-    "#,
-        deck_id,
-        n
-    )
-    .fetch_all(&mut tx)
-    .await
-    .unwrap();
-
-    sqlx::query!(
-        r#"
-        UPDATE decks
-            SET position = position + $2
-        WHERE
-            id = $1
-    "#,
-        deck_id,
-        n
-    )
-    .execute(&mut tx)
-    .await
-    .unwrap();
-
-    tx.commit().await.unwrap();
-
-    Ok(cards)
 }

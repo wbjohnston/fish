@@ -70,6 +70,19 @@ export default function ListGamePage() {
     }));
   }
 
+  function handleStartGame() {
+    if (!websocket) {
+      // throw error
+    }
+
+    websocket.send(JSON.stringify({
+      gameId: router.query.id,
+      action: {
+        kind: 'start',
+      },
+    }));
+  }
+
   function leaveGame() {
     if (!websocket) {
       // throw error
@@ -136,8 +149,9 @@ export default function ListGamePage() {
 
       <Button onClick={joinGame} color="green">Join Game</Button>
       <Button onClick={sitGame} color="green">Sit</Button>
-      <Button onClick={leaveGame} color="green">Leave </Button>
-      <Button onClick={submitFold} color="green">Fold </Button>
+      <Button onClick={leaveGame} color="green">Leave</Button>
+      <Button onClick={submitFold} color="green">Fold</Button>
+      <Button onClick={handleStartGame} color="green">Start</Button>
       <Form onFinish={submitBet}>
         <Form.Item label="Amount" name="amount">
           <Input />

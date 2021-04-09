@@ -1,4 +1,4 @@
-use crate::models::user::UserId;
+use crate::{handlers::user::Action, models::user::UserId};
 use serde::{Deserialize, Serialize};
 use tracing::*;
 use uuid::Uuid;
@@ -30,9 +30,70 @@ pub struct Game {
     pub river_card_id: Option<CardId>,
     pub pot: Chips,
     pub status: String,
+    pub phase: String,
 }
 
 impl Game {
+
+    pub async fn accept_player_move(db: Db, game_id: GameId, user_id: UserId, action: Action) -> Result<()> {
+        let game = Self::fetch(db.clone(), game_id).await?;
+
+        if game.status() != GameStatus::Running {
+            return Err("game is not running".into())
+        }
+
+        if !Self::player_is_active_player(db.clone(), game_id, user_id).await? {
+            return Err("player is not active player".into())
+        }
+
+        match action {
+            Action::Bet { amount} => Self::bet_player(db.clone(), game_id, user_id, amount).await?,
+            Action::Fold  => Self::fold_player(db.clone(), game_id, user_id).await?,
+            _ => todo!()
+        }
+
+        // if the phase isn't over, advance the game
+        if !Self::player_is_last_to_act(db.clone(), game_id, user_id).await? {
+            Self::advance_to_next_player(db.clone(), game_id).await?;
+            return Ok(())
+        }
+
+
+        // round is over
+        match game.phase() {
+            GamePhase::PreFlop => Self::deal_flop(db, game_id).await?,
+            GamePhase::Flop => Self::deal_turn(db, game_id).await?,
+            GamePhase::Turn => Self::deal_river(db, game_id).await?,
+            GamePhase::River => Self::end_round(db, game_id).await?,
+        }
+
+        Ok(())
+    }
+
+
+    pub async fn start_game(db: Db, game_id: GameId) -> Result<()> {
+        sqlx::query!("UPDATE games set status='running' where id=$1", game_id).execute(&db).await?;
+        Ok(())
+    }
+
+    pub async fn pause_game(db: Db, game_id: GameId) -> Result<()> {
+        sqlx::query!("UPDATE games set status='paused' where id=$1", game_id).execute(&db).await?;
+        Ok(())
+    }
+
+
+    async fn advance_to_next_player(db: Db, game_id: GameId) -> Result<()> {
+        todo!()
+    }
+
+    fn phase(&self) -> GamePhase {
+        GAME_PHASES.get(self.phase.as_str()).cloned().unwrap()
+    }
+
+    fn status(&self) -> GameStatus {
+        GAME_STATUSES.get(self.status.as_str()).cloned().unwrap()
+    }
+
     pub async fn list(db: Db) -> Result<Vec<Game>> {
         sqlx::query_as!(Game, "SELECT * FROM games")
             .fetch_all(&db)
@@ -387,7 +448,7 @@ impl Game {
     }
 
     async fn distribute_winnings<'a>(
-        mut tx: Tx<'a>,
+        tx: Tx<'a>,
         game_id: GameId,
     ) -> Result<Tx<'a>> {
         todo!()
@@ -532,9 +593,6 @@ pub struct Player {
     pub status: PlayerStatus,
 }
 
-pub async fn accept_player_move(db: Db) -> Result<Game> {
-    todo!()
-}
 
 pub async fn get_table(
     _db: Db,
@@ -561,7 +619,7 @@ pub static PLAYER_STATUSES: phf::Map<&'static str, PlayerStatus> = phf::phf_map!
     "spectating" => PlayerStatus::Spectating,
 };
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum GameStatus {
     Created,
@@ -570,7 +628,6 @@ pub enum GameStatus {
     Paused,
 }
 
-#[allow(dead_code)]
 pub static GAME_STATUSES: phf::Map<&'static str, GameStatus> = phf::phf_map! {
     "created" => GameStatus::Created,
     "running" => GameStatus::Running,
@@ -579,26 +636,25 @@ pub static GAME_STATUSES: phf::Map<&'static str, GameStatus> = phf::phf_map! {
 };
 
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
 pub enum GamePhase {
     PreFlop,
     Flop,
     Turn,
     River,
-    End,
 }
 
-#[allow(dead_code)]
 pub static GAME_PHASES: phf::Map<&'static str, GamePhase> = phf::phf_map! {
     "preFlop" => GamePhase::PreFlop,
     "flop" => GamePhase::Flop,
     "turn" => GamePhase::Turn,
     "river" => GamePhase::River,
-    "end" => GamePhase::End,
 };
 
+impl std::str::FromStr for GamePhase {
+    type Err = Box<dyn std::error::Error>;
 
-pub enum PlayerMove {
-    Bet(Chips),
-    Fold,
+    fn from_str(s: &str) -> Result<Self> {
+        GAME_PHASES.get(s).cloned().map(Ok).unwrap_or(Err("status does not exist".into()))
+    }
 }
