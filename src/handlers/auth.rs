@@ -1,5 +1,6 @@
 use crate::models::session::{Session, SessionId};
 use crate::models::user::User;
+use crate::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::convert::Infallible;
@@ -18,7 +19,7 @@ pub struct LoginRequest {
     password: String,
 }
 pub async fn authorize(
-    db: crate::Db,
+    db: Db,
     header: Option<SessionId>,
     cookie: Option<SessionId>,
 ) -> Result<Session, Rejection> {
@@ -39,7 +40,7 @@ pub async fn authorize(
     Ok(session)
 }
 
-pub async fn login(db: crate::Db, req: LoginRequest) -> Result<impl warp::Reply, Infallible> {
+pub async fn login(db: Db, req: LoginRequest) -> Result<impl warp::Reply, Infallible> {
     let user = sqlx::query_as!(
         User,
         "SELECT * FROM users WHERE username = $1",
@@ -82,7 +83,7 @@ pub async fn login(db: crate::Db, req: LoginRequest) -> Result<impl warp::Reply,
     Ok(response)
 }
 
-pub async fn logout(db: crate::Db, session: Session) -> Result<impl warp::Reply, Infallible> {
+pub async fn logout(db: Db, session: Session) -> Result<impl warp::Reply, Infallible> {
     let _ = sqlx::query_as!(
         Session,
         "DELETE FROM sessions WHERE id = $1 RETURNING *",

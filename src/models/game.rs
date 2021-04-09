@@ -2,6 +2,7 @@ use crate::models::user::UserId;
 use serde::{Deserialize, Serialize};
 use tracing::*;
 use uuid::Uuid;
+use crate::prelude::*;
 
 use super::{
     card::{Card, CardId},
@@ -42,7 +43,7 @@ pub struct GameSession {
     pub status: String,
 }
 
-pub async fn list_games(db: crate::Db) -> Result<Vec<Game>, Box<dyn std::error::Error>> {
+pub async fn list_games(db: Db) -> Result<Vec<Game>, Box<dyn std::error::Error>> {
     sqlx::query_as!(Game, "SELECT * FROM games")
         .fetch_all(&db)
         .await
@@ -50,7 +51,7 @@ pub async fn list_games(db: crate::Db) -> Result<Vec<Game>, Box<dyn std::error::
         .unwrap()
 }
 
-pub async fn fetch_game(db: crate::Db, id: GameId) -> Result<Game, Box<dyn std::error::Error>> {
+pub async fn fetch_game(db: Db, id: GameId) -> Result<Game, Box<dyn std::error::Error>> {
     sqlx::query_as!(Game, "SELECT * FROM games WHERE id = $1", id)
         .fetch_one(&db)
         .await
@@ -59,7 +60,7 @@ pub async fn fetch_game(db: crate::Db, id: GameId) -> Result<Game, Box<dyn std::
 }
 
 pub async fn create_game(
-    db: crate::Db,
+    db: Db,
     name: String,
     owner_id: UserId,
 ) -> Result<Game, Box<dyn std::error::Error>> {
@@ -83,7 +84,7 @@ pub async fn create_game(
 }
 
 pub async fn stand_player(
-    db: crate::Db,
+    db: Db,
     game_id: GameId,
     user_id: UserId,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -107,7 +108,7 @@ pub async fn stand_player(
 }
 
 pub async fn sit_player_at_first_available_seat(
-    db: crate::Db,
+    db: Db,
     game_id: GameId,
     user_id: UserId,
 ) -> Result<SeatNumber, Box<dyn std::error::Error>> {
@@ -138,7 +139,7 @@ pub async fn sit_player_at_first_available_seat(
 }
 
 pub async fn sit_player_at_seat(
-    db: crate::Db,
+    db: Db,
     game_id: GameId,
     user_id: UserId,
     seat_number: SeatNumber,
@@ -163,7 +164,7 @@ pub async fn sit_player_at_seat(
     Ok(())
 }
 
-pub async fn deal_flop(db: crate::Db, game_id: GameId) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn deal_flop(db: Db, game_id: GameId) -> Result<(), Box<dyn std::error::Error>> {
     let mut tx = db.begin().await.unwrap();
 
     sqlx::query!(
@@ -200,7 +201,7 @@ pub async fn deal_flop(db: crate::Db, game_id: GameId) -> Result<(), Box<dyn std
     Ok(())
 }
 
-pub async fn deal_turn(db: crate::Db, game_id: GameId) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn deal_turn(db: Db, game_id: GameId) -> Result<(), Box<dyn std::error::Error>> {
     let mut tx = db.begin().await.unwrap();
 
     debug!("IN HERE");
@@ -237,7 +238,7 @@ pub async fn deal_turn(db: crate::Db, game_id: GameId) -> Result<(), Box<dyn std
     Ok(())
 }
 
-pub async fn deal_river(db: crate::Db, game_id: GameId) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn deal_river(db: Db, game_id: GameId) -> Result<(), Box<dyn std::error::Error>> {
     let mut tx = db.begin().await.unwrap();
 
     debug!("IN HERE");
@@ -274,7 +275,7 @@ pub async fn deal_river(db: crate::Db, game_id: GameId) -> Result<(), Box<dyn st
 }
 
 pub async fn fold_player(
-    db: crate::Db,
+    db: Db,
     game_id: GameId,
     user_id: UserId,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -282,7 +283,7 @@ pub async fn fold_player(
 }
 
 pub async fn bet_player(
-    db: crate::Db,
+    db: Db,
     game_id: GameId,
     user_id: UserId,
     amount: Chips,
@@ -291,7 +292,7 @@ pub async fn bet_player(
 }
 
 pub async fn deal_cards_to_players(
-    db: crate::Db,
+    db: Db,
     game_id: GameId,
 ) -> Result<Vec<(UserId, Vec<Card>)>, Box<dyn std::error::Error>> {
     // sqlx::query!(
@@ -382,14 +383,14 @@ pub async fn distribute_winnings<'a>(
 }
 
 pub async fn round_is_over(
-    db: crate::Db,
+    db: Db,
     game_id: GameId,
 ) -> Result<bool, Box<dyn std::error::Error>> {
     todo!()
 }
 
 pub async fn player_is_active_player(
-    db: crate::Db,
+    db: Db,
     game_id: GameId,
     user_id: UserId,
 ) -> Result<bool, Box<dyn std::error::Error>> {
@@ -409,7 +410,7 @@ pub async fn player_is_active_player(
 }
 
 pub async fn player_is_last_to_act(
-    db: crate::Db,
+    db: Db,
     game_id: GameId,
     user_id: UserId,
 ) -> Result<bool, Box<dyn std::error::Error>> {
@@ -424,13 +425,13 @@ pub async fn advance_button<'a>(
 }
 
 pub async fn game_can_continue<'a>(
-    db: crate::Db,
+    db: Db,
     game_id: GameId,
 ) -> Result<bool, Box<dyn std::error::Error>> {
     todo!()
 }
 
-pub async fn end_round(db: crate::Db, game_id: GameId) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn end_round(db: Db, game_id: GameId) -> Result<(), Box<dyn std::error::Error>> {
     /*
     1. delete community cards
     2. delete player cards
@@ -477,14 +478,14 @@ pub struct Player {
 }
 
 pub async fn get_table(
-    _db: crate::Db,
+    _db: Db,
     _game_id: GameId,
 ) -> Result<Table, Box<dyn std::error::Error>> {
     todo!()
 }
 
 pub async fn join_game(
-    db: crate::Db,
+    db: Db,
     game_id: GameId,
     user_id: UserId,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -512,7 +513,7 @@ pub async fn join_game(
 }
 
 pub async fn leave_game(
-    db: crate::Db,
+    db: Db,
     game_id: GameId,
     user_id: UserId,
 ) -> Result<(), Box<dyn std::error::Error>> {

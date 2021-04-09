@@ -1,10 +1,11 @@
+use crate::prelude::*;
 use std::convert::Infallible;
 
 use crate::models::{
     game::create_game, game::fetch_game, game::list_games, game::GameId, session::Session,
 };
 
-pub async fn list(db: crate::Db) -> Result<impl warp::Reply, Infallible> {
+pub async fn list(db: Db) -> Result<impl warp::Reply, Infallible> {
     let games = list_games(db).await.unwrap();
 
     Ok(warp::reply::json(&games))
@@ -16,7 +17,7 @@ pub struct NewGameRequest {
 }
 
 pub async fn create(
-    db: crate::Db,
+    db: Db,
     session: Session,
     new_game: NewGameRequest,
 ) -> Result<impl warp::Reply, Infallible> {
@@ -30,7 +31,7 @@ pub async fn create(
     ))
 }
 
-pub async fn fetch(db: crate::Db, id: GameId) -> Result<impl warp::Reply, Infallible> {
+pub async fn fetch(db: Db, id: GameId) -> Result<impl warp::Reply, Infallible> {
     let game = fetch_game(db.clone(), id).await.unwrap();
 
     Ok(warp::reply::with_status(

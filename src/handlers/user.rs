@@ -1,3 +1,4 @@
+use crate::prelude::*;
 use futures::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
@@ -28,7 +29,7 @@ use crate::{
     services::auth::hash_password,
 };
 
-pub async fn list(db: crate::Db) -> Result<impl warp::Reply, Infallible> {
+pub async fn list(db: Db) -> Result<impl warp::Reply, Infallible> {
     let users = sqlx::query_as!(User, "SELECT * FROM users")
         .fetch_all(&db)
         .await
@@ -40,7 +41,7 @@ pub async fn list(db: crate::Db) -> Result<impl warp::Reply, Infallible> {
 }
 
 pub async fn create(
-    db: crate::Db,
+    db: Db,
     new_user: crate::models::user::NewUser,
 ) -> Result<impl Reply, Infallible> {
     let hash = hash_password(new_user.password.as_bytes());
@@ -60,7 +61,7 @@ pub async fn create(
     Ok(warp::reply::json(&sanitized))
 }
 
-pub async fn fetch(db: crate::Db, id: Uuid) -> Result<impl warp::Reply, Infallible> {
+pub async fn fetch(db: Db, id: Uuid) -> Result<impl warp::Reply, Infallible> {
     let user = sqlx::query_as!(User, "SELECT * FROM users WHERE id = $1 LIMIT 1", id)
         .fetch_one(&db)
         .await
@@ -72,7 +73,7 @@ pub async fn fetch(db: crate::Db, id: Uuid) -> Result<impl warp::Reply, Infallib
 }
 
 pub async fn ws(
-    db: crate::Db,
+    db: Db,
     session: Session,
     _id: UserId,
     ws: warp::ws::Ws,

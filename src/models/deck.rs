@@ -1,3 +1,4 @@
+use crate::prelude::*;
 pub type DeckId = uuid::Uuid;
 
 #[derive(Debug, sqlx::FromRow)]
@@ -55,10 +56,7 @@ pub async fn shuffle_deck_transaction<'a>(
     Ok(tx)
 }
 
-pub async fn shuffle_deck<'a>(
-    db: crate::Db,
-    deck_id: DeckId,
-) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn shuffle_deck<'a>(db: Db, deck_id: DeckId) -> Result<(), Box<dyn std::error::Error>> {
     let tx = db.begin().await.unwrap();
     let tx = shuffle_deck_transaction(tx, deck_id).await?;
     tx.commit().await.unwrap();
@@ -66,34 +64,25 @@ pub async fn shuffle_deck<'a>(
     Ok(())
 }
 
-pub async fn _deal_flop(
-    db: crate::Db,
-    deck_id: DeckId,
-) -> Result<Vec<Card>, Box<dyn std::error::Error>> {
+pub async fn _deal_flop(db: Db, deck_id: DeckId) -> Result<Vec<Card>, Box<dyn std::error::Error>> {
     // draw an extra card to burn it
     let cards = draw_n(db, deck_id, 4).await?;
 
     Ok(cards)
 }
 
-pub async fn _deal_turn(
-    db: crate::Db,
-    deck_id: DeckId,
-) -> Result<Card, Box<dyn std::error::Error>> {
+pub async fn _deal_turn(db: Db, deck_id: DeckId) -> Result<Card, Box<dyn std::error::Error>> {
     // draw an extra card to burn it
     let card = draw_n(db, deck_id, 2).await?;
 
     Ok(card[0].clone())
 }
 
-pub async fn _deal_river(
-    db: crate::Db,
-    deck_id: DeckId,
-) -> Result<Card, Box<dyn std::error::Error>> {
+pub async fn _deal_river(db: Db, deck_id: DeckId) -> Result<Card, Box<dyn std::error::Error>> {
     _deal_turn(db, deck_id).await
 }
 
-pub async fn _create_deck(db: crate::Db) -> Result<DeckId, Box<dyn std::error::Error>> {
+pub async fn _create_deck(db: Db) -> Result<DeckId, Box<dyn std::error::Error>> {
     let tx = db.begin().await.unwrap();
 
     let (tx, deck_id) = create_deck_transaction(tx).await?;
@@ -129,7 +118,7 @@ pub async fn create_deck_transaction<'a>(
     Ok((tx, deck.id))
 }
 
-pub async fn draw_next(db: crate::Db, deck_id: DeckId) -> Result<Card, Box<dyn std::error::Error>> {
+pub async fn draw_next(db: Db, deck_id: DeckId) -> Result<Card, Box<dyn std::error::Error>> {
     let mut tx = db.begin().await.unwrap();
 
     let card = sqlx::query_as!(
@@ -165,7 +154,7 @@ pub async fn draw_next(db: crate::Db, deck_id: DeckId) -> Result<Card, Box<dyn s
 }
 
 pub async fn draw_n(
-    db: crate::Db,
+    db: Db,
     deck_id: DeckId,
     n: i32,
 ) -> Result<Vec<Card>, Box<dyn std::error::Error>> {

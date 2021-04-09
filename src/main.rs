@@ -4,33 +4,33 @@ use std::net::SocketAddr;
 use tracing::*;
 use warp::Filter;
 
+mod config;
+mod context;
 mod filters;
 mod handlers;
 mod models;
+mod prelude;
 mod services;
-
 const PORT: u16 = 8080;
 
-pub type Db = Pool<Postgres>;
+use prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt::init();
 
+    let config = config::Config::from_env()?;
+
     let db = PgPoolOptions::new()
         .max_connections(5)
-        .connect(
-            std::env::var("DATABASE_URL")
-                .expect("missing required environment variable 'DATABASE_URL'")
-                .as_str(),
-        )
+        .connect(config.database_url.as_str())
         .await?;
 
     let mut listener = sqlx::postgres::PgListener::connect_with(&db).await?;
 
     let (tx, rx) = channel(256);
 
-    let context = Context {
+    let context = context::Context {
         db,
         table_notifcations_rx: rx,
     };
@@ -70,10 +70,4 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     tokio::spawn(server).await.expect("couldn't start server");
     Ok(())
-}
-
-#[derive(Debug, Clone)]
-pub struct Context {
-    pub db: Db,
-    pub table_notifcations_rx: crossbeam_channel::Receiver<sqlx::postgres::PgNotification>,
 }
