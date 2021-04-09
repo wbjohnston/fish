@@ -1,11 +1,13 @@
-use crate::prelude::*;
-
-use crate::models::{
-    game::create_game, game::fetch_game, game::list_games, game::GameId, session::Session,
+use crate::{
+    models::{
+        game::{Game, GameId},
+        session::Session,
+    },
+    prelude::*,
 };
 
 pub async fn list(db: Db) -> WebResult<impl warp::Reply> {
-    let games = list_games(db).await.unwrap();
+    let games = Game::list(db).await.unwrap();
 
     Ok(warp::reply::json(&games))
 }
@@ -20,7 +22,7 @@ pub async fn create(
     session: Session,
     new_game: NewGameRequest,
 ) -> WebResult<impl warp::Reply> {
-    let game = create_game(db.clone(), new_game.name, session.owner_id)
+    let game = Game::create(db.clone(), new_game.name, session.owner_id)
         .await
         .unwrap();
 
@@ -31,7 +33,7 @@ pub async fn create(
 }
 
 pub async fn fetch(db: Db, id: GameId) -> WebResult<impl warp::Reply> {
-    let game = fetch_game(db.clone(), id).await.unwrap();
+    let game = Game::fetch(db.clone(), id).await.unwrap();
 
     Ok(warp::reply::with_status(
         warp::reply::json(&game),

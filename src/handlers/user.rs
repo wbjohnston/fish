@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use crate::{models::game::Game, prelude::*};
 use futures::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 
@@ -7,18 +7,7 @@ use uuid::Uuid;
 use warp::{ws::Message as WsMessage, Reply};
 
 use crate::{
-    models::game::join_game,
-    models::game::leave_game,
-    models::game::player_is_active_player,
-    models::game::sit_player_at_first_available_seat,
-    models::game::sit_player_at_seat,
-    models::game::stand_player,
     models::{
-        game::bet_player,
-        game::deal_flop,
-        game::deal_river,
-        game::deal_turn,
-        game::fold_player,
         game::get_table,
         game::Table,
         game::{Chips, GameId, SeatNumber},
@@ -88,12 +77,12 @@ pub async fn ws(
 
                 match message.action {
                     Action::Join => {
-                        join_game(db.clone(), message.game_id, session.owner_id)
+                        Game::join_game(db.clone(), message.game_id, session.owner_id)
                             .await
                             .unwrap();
                     }
                     Action::Bet { amount }
-                        if player_is_active_player(
+                        if Game::player_is_active_player(
                             db.clone(),
                             message.game_id,
                             session.owner_id,
@@ -101,17 +90,17 @@ pub async fn ws(
                         .await
                         .unwrap() =>
                     {
-                        bet_player(db.clone(), message.game_id, session.owner_id, amount)
+                        Game::bet_player(db.clone(), message.game_id, session.owner_id, amount)
                             .await
                             .unwrap();
                     }
                     Action::Leave => {
-                        leave_game(db.clone(), message.game_id, session.owner_id)
+                        Game::leave_game(db.clone(), message.game_id, session.owner_id)
                             .await
                             .unwrap();
                     }
                     Action::Fold
-                        if player_is_active_player(
+                        if Game::player_is_active_player(
                             db.clone(),
                             message.game_id,
                             session.owner_id,
@@ -119,33 +108,35 @@ pub async fn ws(
                         .await
                         .unwrap() =>
                     {
-                        fold_player(db.clone(), message.game_id, session.owner_id)
+                        Game::fold_player(db.clone(), message.game_id, session.owner_id)
                             .await
                             .unwrap();
                     }
                     Action::Stand => {
-                        stand_player(db.clone(), message.game_id, session.owner_id)
+                        Game::stand_player(db.clone(), message.game_id, session.owner_id)
                             .await
                             .unwrap();
                     }
                     Action::Sit { seat_number: None } => {
-                        sit_player_at_first_available_seat(
+                        Game::sit_player_at_first_available_seat(
                             db.clone(),
                             message.game_id,
                             session.owner_id,
                         )
                         .await
                         .unwrap();
-                        deal_flop(db.clone(), message.game_id).await.unwrap();
-                        deal_turn(db.clone(), message.game_id).await.unwrap();
-                        deal_river(db.clone(), message.game_id).await.unwrap();
                     }
                     Action::Sit {
                         seat_number: Some(x),
                     } => {
-                        sit_player_at_seat(db.clone(), message.game_id, session.owner_id, x)
-                            .await
-                            .unwrap();
+                        Game::sit_player_at_seat(
+                            db.clone(),
+                            message.game_id,
+                            session.owner_id,
+                            x,
+                        )
+                        .await
+                        .unwrap();
                     }
                     Action::Sync => {
                         let table = get_table(db.clone(), message.game_id).await.unwrap();
