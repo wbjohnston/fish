@@ -1,11 +1,7 @@
 use std::convert::Infallible;
 
 use crate::models::{
-    game::create_game,
-    game::fetch_game,
-    game::list_games,
-    game::{GameId},
-    session::Session,
+    game::create_game, game::fetch_game, game::list_games, game::GameId, session::Session,
 };
 
 pub async fn list(db: crate::Db) -> Result<impl warp::Reply, Infallible> {
@@ -35,7 +31,7 @@ pub async fn create(
 }
 
 pub async fn fetch(db: crate::Db, id: GameId) -> Result<impl warp::Reply, Infallible> {
-    let game = fetch_game(db, id).await.unwrap();
+    let game = fetch_game(db.clone(), id).await.unwrap();
 
     Ok(warp::reply::with_status(
         warp::reply::json(&game),

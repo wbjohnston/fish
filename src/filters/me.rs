@@ -4,30 +4,30 @@ use super::auth::authorization_token_filter;
 use warp::Filter;
 
 pub fn index(
-    db: crate::Db,
+    context: crate::Context,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-    fetch(db.clone()).or(ws(db.clone()))
+    fetch(context.clone()).or(ws(context.clone()))
 }
 
 pub fn fetch(
-    db: crate::Db,
+    context: crate::Context,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::path!("me")
         .and(warp::get())
-        .and(authorization_token_filter(db.clone()))
+        .and(authorization_token_filter(context.clone()))
         .and_then(move |session: Session| {
-            crate::handlers::user::fetch(db.clone(), session.owner_id)
+            crate::handlers::user::fetch(context.db.clone(), session.owner_id)
         })
 }
 
 pub fn ws(
-    db: crate::Db,
+    context: crate::Context,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::path!("me" / "ws")
-        .and(authorization_token_filter(db.clone()))
+        .and(authorization_token_filter(context.clone()))
         .and(warp::ws())
         .and_then(move |session: Session, ws: warp::ws::Ws| {
             let id = session.owner_id.clone();
-            crate::handlers::user::ws(db.clone(), session, id, ws)
+            crate::handlers::user::ws(context.db.clone(), session, id, ws)
         })
 }

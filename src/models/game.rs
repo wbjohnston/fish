@@ -166,8 +166,6 @@ pub async fn sit_player_at_seat(
 pub async fn deal_flop(db: crate::Db, game_id: GameId) -> Result<(), Box<dyn std::error::Error>> {
     let mut tx = db.begin().await.unwrap();
 
-    debug!("IN HERE");
-
     sqlx::query!(
         r#"
             with current_deck as (
@@ -309,7 +307,7 @@ pub async fn deal_cards_to_players(
     //     "#,
     //     game_id
     // )
-    // .execute(&db)
+    // .execute(&context.db)
     // .await
     // .unwrap();
 

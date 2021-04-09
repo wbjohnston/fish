@@ -1,3 +1,4 @@
+use crossbeam_channel::bounded as channel;
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use std::net::SocketAddr;
 use tracing::*;
@@ -25,6 +26,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         .await?;
 
+    let mut listener = sqlx::postgres::PgListener::connect_with(&db).await?;
+
+    let (tx, rx) = channel(256);
+
+    let context = Context {
+        db,
+        table_notifcations_rx: rx,
+    };
+
+    tokio::spawn(async move {
+        listener.listen("table_notifications").await.unwrap();
+
+        while let Ok(msg) = listener.recv().await {
+            tx.send(msg).unwrap();
+        }
+    });
+
     info!("connected to database");
 
     let cors = warp::cors()
@@ -40,7 +58,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ])
         .allow_methods(vec!["POST", "GET"]);
 
-    let routes = filters::index(db).with(warp::trace::request()).with(cors);
+    let routes = filters::index(context)
+        .with(warp::trace::request())
+        .with(cors);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], PORT));
     let (addr, server) = warp::serve(routes)
@@ -50,4 +70,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     tokio::spawn(server).await.expect("couldn't start server");
     Ok(())
+}
+
+#[derive(Debug, Clone)]
+pub struct Context {
+    pub db: Db,
+    pub table_notifcations_rx: crossbeam_channel::Receiver<sqlx::postgres::PgNotification>,
 }
