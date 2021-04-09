@@ -479,8 +479,8 @@ pub struct Player {
 }
 
 pub async fn get_table(
-    db: crate::Db,
-    game_id: GameId,
+    _db: crate::Db,
+    _game_id: GameId,
 ) -> Result<Table, Box<dyn std::error::Error>> {
     todo!()
 }
@@ -541,6 +541,7 @@ pub enum PlayerStatus {
     Spectating,
 }
 
+#[allow(dead_code)]
 pub static PLAYER_STATUSES: phf::Map<&'static str, PlayerStatus> = phf::phf_map! {
     "standing" => PlayerStatus::Standing,
     "playing" => PlayerStatus::Playing,
@@ -557,9 +558,29 @@ pub enum GameStatus {
     Paused,
 }
 
+#[allow(dead_code)]
 pub static GAME_STATUSES: phf::Map<&'static str, GameStatus> = phf::phf_map! {
     "created" => GameStatus::Created,
     "running" => GameStatus::Running,
     "ended" => GameStatus::Ended,
     "paused" => GameStatus::Paused,
+};
+
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum GamePhase {
+    PreFlop,
+    Flop,
+    Turn,
+    River,
+    End,
+}
+
+#[allow(dead_code)]
+pub static GAME_PHASES: phf::Map<&'static str, GamePhase> = phf::phf_map! {
+    "preFlop" => GamePhase::PreFlop,
+    "flop" => GamePhase::Flop,
+    "turn" => GamePhase::Turn,
+    "river" => GamePhase::River,
+    "end" => GamePhase::End,
 };
