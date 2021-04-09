@@ -3,14 +3,14 @@ import {
   Form,
 } from 'antd';
 import { useRouter } from 'next/router';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { createGame, listGames } from '../../lib/api';
 
 import Layout from '../../components/AuthedLayout';
 
-export default function ListGamePage() {
+export default function ListGamePage({ initialGames }) {
   const router = useRouter();
-  const [games, setGames] = useState([]);
+  const [games, setGames] = useState(initialGames);
 
   function handleNewGameSubmit({ name }) {
     createGame({ name })
@@ -19,18 +19,10 @@ export default function ListGamePage() {
           message: `successfully created game '${game.name}'`,
         });
       })
-      .then((_) => {
+      .then(() => {
         listGames().then(setGames);
       });
   }
-
-  useEffect(() => {
-    if (!router.isReady) {
-      return;
-    }
-
-    listGames().then(setGames);
-  }, [router.isReady]);
 
   function onRow(row) {
     return {
@@ -68,4 +60,14 @@ export default function ListGamePage() {
       <Table onRow={onRow} dataSource={games} columns={columns} />
     </Layout>
   );
+}
+
+export async function getServerSideProps() {
+  const initialGames = await listGames();
+
+  return {
+    props: {
+      initialGames,
+    },
+  };
 }
