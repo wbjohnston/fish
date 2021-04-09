@@ -1,8 +1,9 @@
 import {
-  Button, Input, notification, Table, 
-, Form } from 'antd';
-import { useRouter } from "next/router"
-import { useEffect, useState } from 'react';
+  Button, Input, notification, Table,
+  Form,
+} from 'antd';
+import { useRouter } from 'next/router';
+import React, { useEffect, useState } from 'react';
 import { createGame, listGames } from '../../lib/api';
 
 import Layout from '../../components/AuthedLayout';
@@ -49,22 +50,22 @@ export default function ListGamePage() {
 
   return (
     <Layout activeNavKey="games" title="fish | games">
-  <h2>Create a game</h2>
-  <Form onFinish={handleNewGameSubmit}>
-          <Form.Item
-              label="Name"
-              name="name"
-            >
-              <Input />
-            </Form.Item>
-          <Form.Item>
-              <Button type="primary" htmlType="submit">
-                  Submit
-                </Button>
-            </Form.Item>
-        </Form>
-  <h2>Current Games</h2>
-  <Table onRow={onRow} dataSource={games} columns={columns} />
-</Layout>
+      <h2>Create a game</h2>
+      <Form onFinish={handleNewGameSubmit}>
+        <Form.Item
+          label="Name"
+          name="name"
+        >
+          <Input />
+        </Form.Item>
+        <Form.Item>
+          <Button type="primary" htmlType="submit">
+            Submit
+          </Button>
+        </Form.Item>
+      </Form>
+      <h2>Current Games</h2>
+      <Table onRow={onRow} dataSource={games} columns={columns} />
+    </Layout>
   );
 }

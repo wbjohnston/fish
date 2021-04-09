@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const client = axios.create({
   // TODO(will): source this from env
-  url: 'http://localhost:8080',
+ baseURL: 'http://localhost:8080',
   withCredentials: true,
 });
 
@@ -55,12 +55,12 @@ export async function register(username, password) {
 }
 
 export async function logout() {
-  const response = await axios.get('/auth/logout');
+  const response = await client.get('/auth/logout');
 
   return response.data;
 }
 
 export async function me() {
-  const response = await axios.get('/me');
+  const response = await client.get('/me');
   return response.data;
 }

@@ -12,12 +12,12 @@ export default function LoginPage() {
 
   function handleLoginSubmit({ username, password }) {
     signin(username, password)
-      .then((x) => {
+      .then(() => {
         notification.open({
           message: 'Succesfully logged in',
         });
       })
-      .then((x) => {
+      .then(() => {
         router.push('/game');
       });
   }

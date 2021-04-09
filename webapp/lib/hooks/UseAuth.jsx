@@ -18,9 +18,9 @@ export function useProvideAuth() {
   }, []);
 
   function signin(username, password) {
-    return login(username, password).then((user) => {
-      setUser(user);
-      return user;
+    return login(username, password).then((newUser) => {
+      setUser(newUser);
+      return newUser;
     });
   }
 
@@ -47,5 +47,9 @@ export function ProvideAuth({ children }) {
 }
 
 export default function useAuth() {
-  return useContext(authContext);
+  const context = useContext(authContext);
+
+  console.log(context.user);
+
+  return context;
 }
