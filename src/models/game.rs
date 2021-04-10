@@ -7,7 +7,6 @@ use crate::prelude::*;
 use super::{
     card::{Card, CardId},
     deck::{create_deck_transaction, DeckId},
-    hand::HandId,
 };
 
 pub type GameId = Uuid;
@@ -82,8 +81,43 @@ impl Game {
     }
 
 
-    async fn advance_to_next_player(db: Db, game_id: GameId) -> Result<()> {
-        todo!()
+    async fn advance_to_next_player(db: Db, game_id: GameId) -> Result<SeatNumber> {
+        let s = sqlx::query_scalar!(
+            r#"
+                update games
+                    set active_seat_number = (with first_seat as (
+                            select
+                                seat_number 
+                            from
+                                players
+                            where game_id = $1
+                            order by seat_number asc limit 1
+                        ),
+                        next_seat as (
+                            select
+                                seat_number 
+                            from
+                                players
+                            where game_id = $1 and seat_number > (
+                                select active_seat_number from games where id = $1
+                            )
+                                limit 1
+                        )
+                        select * from (
+                            select * from first_seat union all select * from next_seat order by seat_number
+                        ) as foo order by seat_number desc limit 1
+                    )
+                where 
+                    id = $1
+                returning games.active_seat_number
+            "#,
+            game_id
+        )
+        .fetch_one(&db)
+        .await
+        .unwrap();
+
+        Ok(s)
     }
 
     fn phase(&self) -> GamePhase {
@@ -576,7 +610,73 @@ pub struct Table {
     pub active_seat_number: SeatNumber,
     pub button_seat_number: SeatNumber,
     pub status: GameStatus,
-    pub you: Option<Player>,
+}
+
+impl Table {
+    pub async fn from_game(db: Db, game: Game) -> Result<Self> {
+        let maybe_flop_1_card = sqlx::query_as!(Card,
+            r#"
+                select value, suit from cards where id = (select flop_card_1_id  from games where id = $1)
+            "#,
+            game.id
+        ).fetch_optional(&db).await?;
+
+        let maybe_flop_2_card = sqlx::query_as!(Card,
+            r#"
+                select value, suit from cards where id = (select flop_card_2_id  from games where id = $1)
+            "#,
+            game.id
+        ).fetch_optional(&db).await?;
+
+        let maybe_flop_3_card = sqlx::query_as!(Card,
+            r#"
+                select value, suit from cards where id = (select flop_card_3_id  from games where id = $1)
+            "#,
+            game.id
+        ).fetch_optional(&db).await?;
+
+        let maybe_turn_card = sqlx::query_as!(Card,
+            r#"
+                select value, suit from cards where id = (select turn_card_id  from games where id = $1)
+            "#,
+            game.id
+        ).fetch_optional(&db).await?;
+
+        let maybe_river_card = sqlx::query_as!(Card,
+            r#"
+                select value, suit from cards where id = (select river_card_id  from games where id = $1)
+            "#,
+            game.id
+        ).fetch_optional(&db).await?;
+
+        let cards: Vec<_> = vec![
+            maybe_flop_1_card,
+            maybe_flop_2_card,
+            maybe_flop_3_card,
+            maybe_turn_card,
+            maybe_river_card
+        ].into_iter().filter_map(|x| x).collect();
+
+        // let players = sqlx::query_as!(
+        //     GameSession, 
+        //     r#"
+        //         select * from players where game_id = $1 
+        //     "#,
+        //     game.id
+        // )
+        // .fetch_all(&db)
+        // .await
+        // .unwrap();
+
+        Ok(Table {
+            cards: cards,
+            players: vec![],
+            pot: game.pot,
+            active_seat_number: game.active_seat_number,
+            button_seat_number: game.button_seat_number,
+            status: game.status(),
+        })
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]

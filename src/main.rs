@@ -1,7 +1,6 @@
 use models::notification::Notification;
 use sqlx::postgres::PgPoolOptions;
 use std::net::SocketAddr;
-use tokio::sync::watch as channel;
 use tracing::*;
 use warp::Filter;
 
